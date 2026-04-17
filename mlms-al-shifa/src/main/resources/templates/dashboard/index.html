@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Dashboard — MLMS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f4f8;
+            padding: 40px;
+        }
+        .card {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            max-width: 600px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        h1 { color: #1a202c; margin-bottom: 8px; }
+        p  { color: #718096; margin-bottom: 20px; }
+        .badge {
+            display: inline-block;
+            background: #ebf4ff;
+            color: #1a73e8;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+        .btn-logout {
+            display: inline-block;
+            padding: 9px 20px;
+            background: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Welcome to MLMS</h1>
+    <p>Al-Shifa Hospital — Medical Lab Management System</p>
+
+    <div class="badge">
+        Logged in as: <strong sec:authentication="name">username</strong>
+    </div>
+
+    <br/>
+
+    <form th:action="@{/logout}" method="post">
+        <input type="hidden"
+               th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}"/>
+        <button type="submit" class="btn-logout">Sign Out</button>
+    </form>
+</div>
+
+</body>
+</html>

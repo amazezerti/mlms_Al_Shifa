@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Assigned Orders</title>
+    <style>
+        .stats-strip{display:grid;grid-template-columns:repeat(3,1fr);
+          gap:12px;margin-bottom:24px;}
+        .strip-card{background:white;border-radius:12px;
+          border:1px solid var(--border);padding:16px 18px;
+          display:flex;align-items:center;gap:12px;}
+        .si{width:36px;height:36px;border-radius:9px;
+          display:flex;align-items:center;justify-content:center;
+          font-size:15px;}
+        .si-purple{background:#ede9fe;color:#6d28d9;}
+        .si-amber{background:#fef9c3;color:#92400e;}
+        .si-green{background:#dcfce7;color:#15803d;}
+        .filter-tabs{display:flex;gap:6px;margin-bottom:20px;}
+        .tab{padding:7px 18px;border-radius:20px;font-size:12px;
+          font-weight:500;border:1.5px solid var(--border);
+          background:white;color:var(--muted);cursor:pointer;
+          transition:all .15s;}
+        .tab.active,.tab:hover{background:#6d28d9;
+          border-color:#6d28d9;color:white;}
+        .order-row{background:white;border-radius:12px;
+          border:1px solid var(--border);padding:16px 20px;
+          margin-bottom:10px;display:flex;align-items:center;
+          gap:14px;transition:box-shadow .2s;}
+        .order-row:hover{box-shadow:0 4px 16px rgba(0,0,0,.07);}
+        .order-code-badge{background:#ede9fe;color:#6d28d9;
+          font-size:12px;font-weight:600;padding:4px 12px;
+          border-radius:8px;flex-shrink:0;font-family:monospace;}
+        .btn-start{background:#6d28d9;color:white;border:none;
+          border-radius:8px;padding:7px 16px;font-size:12px;
+          font-weight:500;cursor:pointer;white-space:nowrap;
+          transition:opacity .2s;}
+        .btn-start:hover{opacity:.85;}
+        .empty-state{text-align:center;padding:48px;
+          color:var(--muted);}
+        .empty-state span{font-size:48px;display:block;
+          margin-bottom:12px;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div style="margin-bottom:24px;">
+        <h4 style="margin:0;font-size:20px;font-weight:600;">
+            Assigned Test Orders
+        </h4>
+        <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">
+            Confirmed and in-progress orders for sample collection
+        </p>
+    </div>
+
+    <div class="stats-strip">
+        <div class="strip-card">
+            <div class="si si-purple">
+                <i class="bi bi-list-task"></i>
+            </div>
+            <div>
+                <div style="font-size:20px;font-weight:600;"
+                     th:text="${orders.size()}">0</div>
+                <div style="font-size:12px;color:var(--muted);">
+                    Total Assigned
+                </div>
+            </div>
+        </div>
+        <div class="strip-card">
+            <div class="si si-amber">
+                <i class="bi bi-exclamation-circle"></i>
+            </div>
+            <div>
+                <div style="font-size:20px;font-weight:600;"
+                     th:text="${orders.?[priority == 'URGENT'].size()}">
+                    0
+                </div>
+                <div style="font-size:12px;color:var(--muted);">
+                    Urgent
+                </div>
+            </div>
+        </div>
+        <div class="strip-card">
+            <div class="si si-green">
+                <i class="bi bi-check2-all"></i>
+            </div>
+            <div>
+                <div style="font-size:20px;font-weight:600;">
+                    —
+                </div>
+                <div style="font-size:12px;color:var(--muted);">
+                    Completed Today
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-tabs">
+        <button class="tab active"
+                onclick="filterOrders('all',this)">
+            All
+        </button>
+        <button class="tab"
+                onclick="filterOrders('URGENT',this)">
+            🔴 Urgent
+        </button>
+        <button class="tab"
+                onclick="filterOrders('STAT',this)">
+            🟡 STAT
+        </button>
+        <button class="tab"
+                onclick="filterOrders('NORMAL',this)">
+            Normal
+        </button>
+    </div>
+
+    <div th:if="${not #lists.isEmpty(orders)}">
+        <div class="order-row"
+             th:each="o : ${orders}"
+             th:attr="data-priority=${o.priority}">
+            <div class="order-code-badge"
+                 th:text="${o.orderCode}">ORD</div>
+            <div style="flex:1;">
+                <div style="font-size:13px;font-weight:600;"
+                     th:text="${o.patient.fullName}">
+                    Patient
+                </div>
+                <div style="font-size:11px;color:var(--muted);
+                    margin-top:3px;display:flex;gap:12px;">
+          <span th:text="${o.patient.patientCode}">
+            PAT-001
+          </span>
+                    <span>·</span>
+                    <span th:text="${#temporals.format(
+            o.orderedAt,'dd MMM yyyy')}">
+            Date
+          </span>
+                </div>
+                <div style="margin-top:6px;display:flex;
+                    gap:5px;flex-wrap:wrap;">
+          <span class="pill pill-gray"
+                th:each="item : ${o.items}"
+                th:text="${item.test.testName}">
+            Test
+          </span>
+                </div>
+            </div>
+            <span th:switch="${o.priority}">
+        <span th:case="'URGENT'"
+              class="pill pill-red">🔴 URGENT</span>
+        <span th:case="'STAT'"
+              class="pill pill-amber">🟡 STAT</span>
+        <span th:case="*"
+              class="pill pill-gray">NORMAL</span>
+      </span>
+            <span class="pill"
+                  th:classappend="${o.status == 'IN_PROGRESS'}
+                    ? 'pill-purple' : 'pill-blue'"
+                  th:text="${o.status}">CONFIRMED</span>
+            <a th:href="@{/technician/samples}"
+               class="btn-start"
+               th:if="${o.status == 'CONFIRMED'}">
+                <i class="bi bi-play-fill"></i> Collect Sample
+            </a>
+            <a th:href="@{/technician/results}"
+               class="btn-start"
+               style="background:#6d28d9;"
+               th:if="${o.status == 'IN_PROGRESS'}">
+                <i class="bi bi-journal-text"></i> Enter Results
+            </a>
+        </div>
+    </div>
+
+    <div class="empty-state"
+         th:if="${#lists.isEmpty(orders)}">
+        <span>📋</span>
+        <p style="font-size:15px;font-weight:500;
+              margin-bottom:6px;">
+            No assigned orders
+        </p>
+        <p style="font-size:13px;">
+            Orders confirmed by doctors will appear here.
+        </p>
+    </div>
+
+</div>
+<th:block layout:fragment="scripts">
+    <script>
+        function filterOrders(priority, btn) {
+            document.querySelectorAll('.tab')
+                .forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.order-row').forEach(r => {
+                r.style.display =
+                    (priority === 'all' ||
+                     r.dataset.priority === priority)
+                        ? '' : 'none';
+            });
+        }
+    </script>
+</th:block>
+</body>
+</html>

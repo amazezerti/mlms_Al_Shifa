@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Clinical Dashboard</title>
+    <style>
+        .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);
+          gap:16px;margin-bottom:28px;}
+        .hero{background:linear-gradient(
+            135deg,#0f172a,#1a3a6b,#1d4ed8);border-radius:18px;
+          padding:32px 36px;color:white;display:flex;
+          justify-content:space-between;align-items:center;
+          margin-bottom:28px;position:relative;overflow:hidden;}
+        .hero::after{content:'';position:absolute;right:-40px;
+          top:-40px;width:200px;height:200px;border-radius:50%;
+          background:rgba(255,255,255,.05);}
+        .hero h2{font-size:22px;font-weight:600;margin:0 0 6px;}
+        .hero p{font-size:14px;opacity:.85;margin:0 0 18px;}
+        .hero-stat{display:inline-flex;align-items:center;gap:8px;
+          background:rgba(255,255,255,.12);border-radius:8px;
+          padding:6px 14px;font-size:13px;margin-right:8px;}
+        .hero-icon{font-size:80px;opacity:.12;position:absolute;
+          right:60px;top:-10px;}
+        .i-blue{background:#dbeafe;color:#1d4ed8;}
+        .i-amber{background:#fef9c3;color:#92400e;}
+        .i-green{background:#dcfce7;color:#15803d;}
+        .i-red{background:#fee2e2;color:#991b1b;}
+        .patient-row{display:flex;align-items:center;gap:12px;
+          padding:12px 0;border-bottom:1px solid #f0f6fa;}
+        .patient-row:last-child{border-bottom:none;}
+        .doc-pat-av{width:36px;height:36px;border-radius:50%;
+          background:linear-gradient(135deg,#1a3a6b,#1d4ed8);
+          display:flex;align-items:center;justify-content:center;
+          font-size:12px;font-weight:600;color:white;
+          flex-shrink:0;text-transform:uppercase;}
+        .charts-grid{display:grid;grid-template-columns:1fr 1fr;
+          gap:20px;margin-bottom:28px;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="hero">
+        <div style="z-index:1;">
+            <h2>Clinical Dashboard 🩺</h2>
+            <p th:text="${profile != null}
+        ? 'Welcome, Dr. ' + ${#authentication.name}
+          + ' — ' + ${profile.department.name}
+        : 'Welcome, Dr. ' + ${#authentication.name}">
+                Welcome
+            </p>
+            <span class="hero-stat">
+        <i class="bi bi-person-heart"></i>
+                <!-- REAL DATA -->
+        <span th:text="${assignedCount}
+                       + ' Patients'">
+          0 Patients
+        </span>
+      </span>
+            <span class="hero-stat"
+                  th:if="${profile != null}">
+        <i class="bi bi-award-fill"></i>
+        <span th:text="${profile.specialization
+                         ?: 'General'}">
+          Specialization
+        </span>
+      </span>
+        </div>
+        <div class="hero-icon">🔬</div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="s-icon i-blue">
+                <i class="bi bi-person-heart"></i>
+            </div>
+            <!-- REAL DATA — was hardcoded -->
+            <div class="s-value"
+                 th:text="${assignedCount}">0</div>
+            <div class="s-label">Assigned Patients</div>
+            <div class="s-trend">
+                <i class="bi bi-clock"></i> Active cases
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="s-icon i-amber">
+                <i class="bi bi-clipboard2-check-fill"></i>
+            </div>
+            <!-- REAL DATA — was hardcoded as 7 -->
+            <div class="s-value"
+                 th:text="${pendingOrders}">0</div>
+            <div class="s-label">Orders to Confirm</div>
+            <div class="s-trend trend-up">
+                <i class="bi bi-arrow-up-short"></i>
+                Awaiting you
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="s-icon i-red">
+                <i class="bi bi-patch-check-fill"></i>
+            </div>
+            <!-- REAL DATA — was hardcoded as 14 -->
+            <div class="s-value"
+                 th:text="${pendingResults}">0</div>
+            <div class="s-label">Results to Verify</div>
+            <div class="s-trend">
+                <i class="bi bi-clock"></i> Pending review
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="s-icon i-green">
+                <i class="bi bi-check2-all"></i>
+            </div>
+            <!-- Cannot count today's verified without extra query — show dash -->
+            <div class="s-value">—</div>
+            <div class="s-label">Verified Today</div>
+            <div class="s-trend">
+                <i class="bi bi-calendar"></i> Today
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="content-card">
+            <div class="cc-header">
+                <h5>My Assigned Patients</h5>
+                <a th:href="@{/doctor/patients}"
+                   style="font-size:12px;color:#1d4ed8;
+                  text-decoration:none;">
+                    View all →
+                </a>
+            </div>
+            <div class="cc-body" style="padding:0 22px;">
+                <div th:each="a : ${assignments}"
+                     class="patient-row"
+                     th:if="${aStat.index < 6}">
+                    <div class="doc-pat-av"
+                         th:text="${a.patient.fullName.length() > 1
+                             ? a.patient.fullName.substring(0,2)
+                             : a.patient.fullName}">
+                        AB
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-size:13px;font-weight:500;"
+                             th:text="${a.patient.fullName}">
+                            Patient
+                        </div>
+                        <div style="font-size:11px;color:var(--muted);"
+                             th:text="${a.department.name}
+                           + ' — '
+                           + ${a.patient.patientCode}">
+                            Dept — Code
+                        </div>
+                    </div>
+                    <span class="pill pill-green"
+                          th:text="${a.status}">ACTIVE</span>
+                </div>
+                <div th:if="${#lists.isEmpty(assignments)}"
+                     style="padding:24px;text-align:center;
+                    color:var(--muted);">
+                    No assigned patients yet.
+                </div>
+            </div>
+        </div>
+
+        <div class="content-card">
+            <div class="cc-header">
+                <h5>Quick Actions</h5>
+            </div>
+            <div class="cc-body">
+                <div style="display:flex;flex-direction:column;
+                    gap:10px;">
+                    <a th:href="@{/doctor/orders}"
+                       style="display:flex;align-items:center;
+                    gap:12px;padding:14px;
+                    background:#eff6ff;border-radius:10px;
+                    text-decoration:none;color:#1d4ed8;">
+                        <span style="font-size:22px;">📋</span>
+                        <div>
+                            <div style="font-size:13px;font-weight:500;">
+                                Confirm Pending Orders
+                            </div>
+                            <div style="font-size:11px;opacity:.7;"
+                                 th:text="${pendingOrders}
+                             + ' orders awaiting'">
+                                0 orders
+                            </div>
+                        </div>
+                    </a>
+                    <a th:href="@{/doctor/results}"
+                       style="display:flex;align-items:center;
+                    gap:12px;padding:14px;
+                    background:#fef9c3;border-radius:10px;
+                    text-decoration:none;color:#92400e;">
+                        <span style="font-size:22px;">🔍</span>
+                        <div>
+                            <div style="font-size:13px;font-weight:500;">
+                                Verify Lab Results
+                            </div>
+                            <div style="font-size:11px;opacity:.7;"
+                                 th:text="${pendingResults}
+                             + ' results pending'">
+                                0 results
+                            </div>
+                        </div>
+                    </a>
+                    <a th:href="@{/doctor/patients}"
+                       style="display:flex;align-items:center;
+                    gap:12px;padding:14px;
+                    background:#dcfce7;border-radius:10px;
+                    text-decoration:none;color:#15803d;">
+                        <span style="font-size:22px;">👥</span>
+                        <div>
+                            <div style="font-size:13px;font-weight:500;">
+                                View My Patients
+                            </div>
+                            <div style="font-size:11px;opacity:.7;"
+                                 th:text="${assignedCount}
+                             + ' active'">
+                                0 patients
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

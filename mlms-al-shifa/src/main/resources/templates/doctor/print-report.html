@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'Lab Report — '
+      + ${order.patient.fullName}">Report</title>
+    <style>
+        @media print {
+            .no-print { display:none; }
+            body { margin:0; }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 720px;
+            margin: 30px auto;
+            padding: 20px;
+            color: #0d1b2a;
+        }
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #1a3a6b;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
+        .hospital-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a3a6b;
+        }
+        .report-title {
+            font-size: 14px;
+            color: #5a7a8a;
+            margin-top: 4px;
+        }
+        .patient-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        .field-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #5a7a8a;
+            margin-bottom: 2px;
+        }
+        .field-value {
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .results-table th {
+            background: #1a3a6b;
+            color: white;
+            padding: 9px 13px;
+            font-size: 12px;
+            text-align: left;
+        }
+        .results-table td {
+            padding: 9px 13px;
+            border-bottom: 1px solid #f0f6fa;
+            font-size: 13px;
+        }
+        .flag-HIGH    { color: #d97706; font-weight:700; }
+        .flag-LOW     { color: #2563eb; font-weight:700; }
+        .flag-CRITICAL{ color: #dc2626; font-weight:700;
+                        background:#fee2e2;
+                        padding:1px 6px;border-radius:4px; }
+        .flag-NORMAL  { color: #059669; }
+        .footer-sig {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 40px;
+            padding-top: 16px;
+            border-top: 1px solid #daeaf3;
+        }
+        .sig-line {
+            border-top: 1px solid #0d1b2a;
+            margin-top: 36px;
+            padding-top: 5px;
+            font-size: 11px;
+            color: #5a7a8a;
+        }
+        .print-btn {
+            background: #1a3a6b;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 9px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print"
+     style="text-align:right;margin-bottom:16px;">
+    <button class="print-btn"
+            onclick="window.print()">
+        🖨️ Print / Save PDF
+    </button>
+    <a th:href="@{/doctor/results/history}"
+       style="margin-left:12px;font-size:13px;
+              color:#5a7a8a;text-decoration:none;">
+        ← Back
+    </a>
+</div>
+
+<div class="report-header">
+    <div>
+        <div class="hospital-name">
+            Al-Shifa Hospital
+        </div>
+        <div class="report-title">
+            N'Djamena, Chad &nbsp;|&nbsp;
+            Laboratory Test Report
+        </div>
+    </div>
+    <div style="text-align:right;font-size:12px;
+                color:#5a7a8a;">
+        <div style="font-weight:600;font-size:14px;
+                    color:#1a3a6b;"
+             th:text="${order.orderCode}">
+            ORD-001
+        </div>
+        <div th:text="${#temporals.format(
+          order.orderedAt,'dd MMM yyyy')}">
+            Date
+        </div>
+    </div>
+</div>
+
+<div class="patient-section">
+    <div>
+        <div class="field-label">Patient Name</div>
+        <div class="field-value"
+             th:text="${order.patient.fullName}">
+            Patient
+        </div>
+    </div>
+    <div>
+        <div class="field-label">Patient Code</div>
+        <div class="field-value"
+             th:text="${order.patient.patientCode}">
+            PAT-001
+        </div>
+    </div>
+    <div>
+        <div class="field-label">Gender</div>
+        <div class="field-value"
+             th:text="${order.patient.gender ?: '—'}">
+            —
+        </div>
+    </div>
+    <div>
+        <div class="field-label">Verified by</div>
+        <div class="field-value"
+             th:text="${order.confirmedBy?.fullName
+               ?: '—'}">
+            Doctor
+        </div>
+    </div>
+</div>
+
+<table class="results-table">
+    <thead>
+    <tr>
+        <th>Test Name</th>
+        <th>Result</th>
+        <th>Unit</th>
+        <th>Normal Range</th>
+        <th>Flag</th>
+        <th>Remarks</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="r : ${results}">
+        <td th:text="${r.orderItem.test.testName}">
+            Test
+        </td>
+        <td style="font-weight:600;"
+            th:text="${r.resultValue ?: '—'}">
+            —
+        </td>
+        <td th:text="${r.unit ?: '—'}">—</td>
+        <td th:text="${r.normalRange ?: '—'}">—</td>
+        <td th:classappend="'flag-'
+                  + (${r.flag} ?: 'NORMAL')"
+            th:text="${r.flag ?: 'NORMAL'}">
+            NORMAL
+        </td>
+        <td th:text="${r.remarks ?: '—'}">—</td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(results)}">
+        <td colspan="6"
+            style="text-align:center;
+                       padding:20px;
+                       color:#5a7a8a;">
+            No results available.
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="footer-sig">
+    <div>
+        <div class="sig-line">
+            Patient / Guardian Signature
+        </div>
+    </div>
+    <div>
+        <div class="sig-line">
+            Verifying Doctor Signature
+        </div>
+    </div>
+</div>
+
+<div style="text-align:center;margin-top:24px;
+             font-size:11px;color:#a0b4be;">
+    Al-Shifa Hospital MLMS — N'Djamena, Chad
+    &nbsp;|&nbsp; Confidential Medical Record
+</div>
+
+</body>
+</html>

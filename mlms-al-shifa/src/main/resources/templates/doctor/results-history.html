@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Verified Results History</title>
+  <style>
+    .page-header{display:flex;justify-content:space-between;
+      align-items:center;margin-bottom:24px;}
+    .page-header h4{margin:0;font-size:20px;font-weight:600;}
+    .hist-row{background:white;border-radius:12px;
+      border:1px solid var(--border);margin-bottom:10px;
+      padding:16px 20px;display:flex;align-items:center;
+      gap:14px;transition:box-shadow .2s;}
+    .hist-row:hover{box-shadow:0 4px 16px rgba(0,0,0,.07);}
+    .order-code{font-family:monospace;font-size:12px;
+      font-weight:600;background:#dbeafe;color:#1d4ed8;
+      padding:3px 10px;border-radius:6px;flex-shrink:0;}
+    .empty-state{text-align:center;padding:60px;
+      color:var(--muted);}
+    .empty-state span{font-size:52px;display:block;
+      margin-bottom:12px;}
+    .btn-print{background:#1d4ed8;color:white;border:none;
+      border-radius:8px;padding:6px 14px;font-size:12px;
+      font-weight:500;cursor:pointer;text-decoration:none;
+      display:inline-flex;align-items:center;gap:5px;
+      transition:opacity .2s;}
+    .btn-print:hover{opacity:.85;color:white;}
+  </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+  <div class="page-header">
+    <div>
+      <h4>Verified Results History</h4>
+      <p style="margin:4px 0 0;font-size:13px;
+                 color:var(--muted);">
+        All results you have verified — records
+        are kept permanently
+      </p>
+    </div>
+    <a th:href="@{/doctor/results}"
+       class="btn-xs btn-outline-xs">
+      ← Back to Verify
+    </a>
+  </div>
+
+  <!-- Search -->
+  <div style="display:flex;gap:10px;margin-bottom:18px;">
+      <input type="text" id="histSearch"
+             placeholder="Search by patient name or code..."
+             oninput="filterHist(this.value)"
+             style="flex:1;border:1.5px solid var(--border);
+                    border-radius:10px;padding:9px 16px;
+                    font-size:13px;outline:none;
+                    font-family:'DM Sans',sans-serif;
+                    transition:border-color .2s;"
+             onfocus="this.style.borderColor='#1d4ed8'"
+             onblur="this.style.borderColor='var(--border)'"/>
+  </div>
+
+  <div id="histList" th:if="${not #lists.isEmpty(results)}">
+    <div class="hist-row"
+         th:each="r : ${results}">
+      <div class="order-code"
+           th:text="${r.orderItem.order.orderCode}">
+        ORD
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;"
+             th:text="${r.orderItem.order.patient
+                         .fullName}">
+          Patient
+        </div>
+        <div style="font-size:11px;color:var(--muted);
+                    margin-top:2px;">
+          <span th:text="${r.orderItem.test.testName}">
+            Test
+          </span>
+          · Result:
+          <strong th:text="${r.resultValue ?: '—'}">
+            —
+          </strong>
+          <span th:text="${r.unit ?: ''}"></span>
+          · Verified:
+          <span th:if="${r.verifiedAt != null}"
+                th:text="${#temporals.format(
+                  r.verifiedAt,'dd MMM yyyy HH:mm')}">
+            date
+          </span>
+        </div>
+      </div>
+      <span th:switch="${r.flag}">
+        <span th:case="'CRITICAL'"
+              class="pill pill-red">CRITICAL</span>
+        <span th:case="'HIGH'"
+              class="pill pill-amber">HIGH</span>
+        <span th:case="'LOW'"
+              class="pill pill-blue">LOW</span>
+        <span th:case="*"
+              class="pill pill-green">NORMAL</span>
+      </span>
+      <a th:href="@{/doctor/print/{id}(
+                    id=${r.orderItem.order.id})}"
+         class="btn-print"
+         target="_blank">
+        <i class="bi bi-printer"></i> Print
+      </a>
+    </div>
+  </div>
+
+  <div class="empty-state"
+       th:if="${#lists.isEmpty(results)}">
+    <span>🔍</span>
+    <p style="font-size:15px;font-weight:500;
+               margin-bottom:6px;">
+      No verified results yet
+    </p>
+    <p style="font-size:13px;">
+      Results you verify will be permanently
+      stored here.
+    </p>
+  </div>
+
+</div>
+<th:block layout:fragment="scripts">
+  <script>
+    function filterHist(q) {
+      var rows = document.querySelectorAll('.hist-row');
+      rows.forEach(function(r) {
+        r.style.display =
+          r.textContent.toLowerCase()
+            .includes(q.toLowerCase()) ? '' : 'none';
+      });
+    }
+  </script>
+</th:block>
+</body>
+</html>

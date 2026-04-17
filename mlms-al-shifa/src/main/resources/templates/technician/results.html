@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Enter Results</title>
+    <style>
+        .page-header{margin-bottom:24px;}
+        .page-header h4{margin:0;font-size:20px;font-weight:600;}
+        .page-header p{margin:4px 0 0;font-size:13px;color:var(--muted);}
+        .result-entry-card{background:white;border-radius:14px;
+          border:1px solid var(--border);margin-bottom:18px;
+          overflow:hidden;}
+        .rec-header{padding:16px 22px;background:#fafcfd;
+          border-bottom:1px solid #f0f6fa;
+          display:flex;justify-content:space-between;
+          align-items:center;}
+        .rec-patient{font-size:14px;font-weight:600;color:var(--text);}
+        .rec-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+        .rec-body{padding:20px 22px;}
+        .result-form-grid{display:grid;
+          grid-template-columns:2fr 1.2fr 0.8fr 1fr 1.5fr;
+          gap:10px;align-items:center;
+          padding:10px 0;border-bottom:1px solid #f5f3ff;}
+        .result-form-grid:last-child{border-bottom:none;}
+        .result-form-grid .header-label{font-size:11px;font-weight:600;
+          letter-spacing:.06em;text-transform:uppercase;
+          color:var(--muted);}
+        .result-input{border:1.5px solid var(--border);
+          border-radius:8px;padding:7px 11px;font-size:13px;
+          font-family:'DM Sans',sans-serif;outline:none;
+          width:100%;transition:border-color .2s;}
+        .result-input:focus{border-color:#6d28d9;}
+        .flag-select{border:1.5px solid var(--border);
+          border-radius:8px;padding:7px 11px;font-size:12px;
+          font-family:'DM Sans',sans-serif;outline:none;
+          width:100%;transition:border-color .2s;}
+        .flag-select:focus{border-color:#6d28d9;}
+        .remarks-area{border:1.5px solid var(--border);
+          border-radius:8px;padding:8px 12px;font-size:13px;
+          font-family:'DM Sans',sans-serif;outline:none;
+          width:100%;resize:none;transition:border-color .2s;}
+        .remarks-area:focus{border-color:#6d28d9;}
+        .rec-footer{padding:14px 22px;border-top:1px solid #f0f6fa;
+          background:#f5f3ff;display:flex;gap:10px;
+          justify-content:flex-end;}
+        .btn-submit{background:#6d28d9;color:white;border:none;
+          border-radius:9px;padding:9px 22px;font-size:13px;
+          font-weight:500;cursor:pointer;display:flex;
+          align-items:center;gap:6px;transition:opacity .2s;}
+        .btn-submit:hover{opacity:.85;}
+        .empty-state{text-align:center;padding:48px;
+          color:var(--muted);}
+        .empty-state span{font-size:48px;display:block;
+          margin-bottom:12px;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="page-header">
+        <h4>Enter Test Results</h4>
+        <p>Input results for collected samples —
+            they will be sent to the doctor for verification</p>
+    </div>
+
+    <div th:if="${not #lists.isEmpty(pendingItems)}">
+        <div class="result-entry-card"
+             th:each="item : ${pendingItems}">
+
+            <div class="rec-header">
+                <div>
+                    <div class="rec-patient"
+                         th:text="${item.order.patient.fullName}">
+                        Patient
+                    </div>
+                    <div class="rec-sub">
+                        <span th:text="${item.test.testName}">Test</span>
+                        ·
+                        <span th:text="${item.test.department.name}">
+              Dept
+            </span>
+                        · Order:
+                        <span th:text="${item.order.orderCode}">ORD</span>
+                    </div>
+                </div>
+                <span class="pill"
+                      th:switch="${item.order.priority}">
+          <span th:case="'URGENT'"
+                class="pill-red">🔴 URGENT</span>
+          <span th:case="'STAT'"
+                class="pill-amber">🟡 STAT</span>
+          <span th:case="*"
+                class="pill-gray">NORMAL</span>
+        </span>
+            </div>
+
+            <form th:action="@{/technician/results/submit}"
+                  method="post">
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}"/>
+                <input type="hidden" name="orderItemId"
+                       th:value="${item.id}"/>
+
+                <!-- Sample selector -->
+                <div class="rec-body">
+                    <div style="margin-bottom:14px;">
+                        <label style="font-size:12px;font-weight:500;
+                          display:block;margin-bottom:6px;">
+                            Sample *
+                        </label>
+                        <select name="sampleId"
+                                class="result-input"
+                                style="max-width:300px;" required>
+                            <option value="">— Select collected sample —</option>
+                            <option
+                                    th:each="s : ${samplesByOrder[item.order.id]}"
+                                    th:value="${s.id}"
+                                    th:text="${s.barcode}
+                                    + ' ('
+                                    + ${s.sampleType ?: 'Unknown'}
+                                    + ')'">
+                                Sample
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Result row -->
+                    <div class="result-form-grid">
+                        <div class="header-label">Test</div>
+                        <div class="header-label">Result Value</div>
+                        <div class="header-label">Unit</div>
+                        <div class="header-label">Flag</div>
+                        <div class="header-label">Normal Range</div>
+                    </div>
+                    <div class="result-form-grid">
+                        <div>
+                            <div style="font-size:13px;font-weight:500;"
+                                 th:text="${item.test.testName}">
+                                Test
+                            </div>
+                            <div style="font-size:11px;
+                          color:var(--muted);"
+                                 th:text="'Ref: '
+                     + (${item.test.normalRange}
+                       ?: 'N/A')">
+                                Ref
+                            </div>
+                        </div>
+                        <input class="result-input" type="text"
+                               name="resultValue"
+                               placeholder="e.g. 14.5" required/>
+                        <input class="result-input" type="text"
+                               name="unit"
+                               th:placeholder="${item.test.unit
+                     ?: 'unit'}"/>
+                        <select class="flag-select" name="flag">
+                            <option value="">Auto</option>
+                            <option value="NORMAL">NORMAL</option>
+                            <option value="HIGH">HIGH</option>
+                            <option value="LOW">LOW</option>
+                            <option value="CRITICAL">CRITICAL</option>
+                        </select>
+                        <input class="result-input" type="text"
+                               name="normalRange"
+                               th:value="${item.test.normalRange}"
+                               placeholder="e.g. 12–17"/>
+                    </div>
+
+                    <!-- Remarks -->
+                    <div style="margin-top:14px;">
+                        <label style="font-size:12px;font-weight:500;
+                          display:block;margin-bottom:6px;">
+                            Technician Remarks (optional)
+                        </label>
+                        <textarea class="remarks-area"
+                                  name="remarks"
+                                  rows="2"
+                                  placeholder="Add observations...">
+            </textarea>
+                    </div>
+                </div>
+
+                <div class="rec-footer">
+                    <button type="submit" class="btn-submit">
+                        <i class="bi bi-send-fill"></i>
+                        Submit for Verification
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <div class="empty-state"
+         th:if="${#lists.isEmpty(pendingItems)}">
+        <span>🔬</span>
+        <p style="font-size:15px;font-weight:500;
+              margin-bottom:6px;">
+            No pending results to enter
+        </p>
+        <p style="font-size:13px;">
+            Collect samples first, then results will appear here.
+        </p>
+    </div>
+
+</div>
+</body>
+</html>

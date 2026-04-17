@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Verify Results</title>
+    <style>
+        .page-header{display:flex;justify-content:space-between;
+          align-items:center;margin-bottom:24px;}
+        .filter-tabs{display:flex;gap:6px;margin-bottom:20px;}
+        .tab{padding:7px 18px;border-radius:20px;font-size:12px;
+          font-weight:500;border:1.5px solid var(--border);
+          background:white;color:var(--muted);cursor:pointer;
+          transition:all .15s;}
+        .tab.active,.tab:hover{background:#1d4ed8;
+          border-color:#1d4ed8;color:white;}
+        .result-card{background:white;border-radius:14px;
+          border:1px solid var(--border);margin-bottom:14px;
+          overflow:hidden;transition:box-shadow .2s;}
+        .result-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.07);}
+        .rc-header{padding:16px 22px;background:#fafcfd;
+          border-bottom:1px solid #f0f6fa;
+          display:flex;justify-content:space-between;
+          align-items:center;}
+        .rc-patient{font-size:14px;font-weight:600;}
+        .rc-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+        .result-row{display:flex;align-items:center;
+          justify-content:space-between;padding:12px 22px;
+          border-bottom:1px solid #f8fafc;}
+        .result-row:last-child{border-bottom:none;}
+        .test-name{font-size:13px;font-weight:500;
+          color:var(--text);min-width:160px;}
+        .result-value{font-size:14px;font-weight:600;
+          color:var(--text);min-width:100px;}
+        .range{font-size:12px;color:var(--muted);}
+        .flag-HIGH{color:#d97706;font-weight:600;}
+        .flag-LOW{color:#2563eb;font-weight:600;}
+        .flag-CRITICAL{color:#dc2626;font-weight:700;
+          background:#fee2e2;padding:2px 8px;border-radius:4px;}
+        .flag-NORMAL{color:#15803d;}
+        .remarks-area{width:100%;border:1.5px solid var(--border);
+          border-radius:8px;padding:8px 12px;font-size:13px;
+          font-family:'DM Sans',sans-serif;outline:none;
+          resize:none;transition:border-color .2s;}
+        .remarks-area:focus{border-color:#1d4ed8;}
+        .rc-footer{padding:14px 22px;border-top:1px solid #f0f6fa;
+          background:#fafcfd;display:flex;gap:10px;
+          justify-content:flex-end;}
+        .btn-verify{background:#1d4ed8;color:white;border:none;
+          border-radius:9px;padding:9px 22px;font-size:13px;
+          font-weight:500;cursor:pointer;display:flex;
+          align-items:center;gap:6px;transition:opacity .2s;}
+        .btn-verify:hover{opacity:.85;}
+        .btn-retest{background:#fee2e2;color:#991b1b;border:none;
+          border-radius:9px;padding:9px 16px;font-size:13px;
+          font-weight:500;cursor:pointer;}
+        .empty-state{text-align:center;padding:60px;
+          color:var(--muted);}
+        .empty-state span{font-size:52px;display:block;
+          margin-bottom:12px;}
+        .stats-strip{display:grid;
+          grid-template-columns:repeat(3,1fr);
+          gap:12px;margin-bottom:24px;}
+        .strip-card{background:white;border-radius:12px;
+          border:1px solid var(--border);padding:16px 18px;
+          display:flex;align-items:center;gap:12px;}
+        .si{width:36px;height:36px;border-radius:9px;
+          display:flex;align-items:center;justify-content:center;
+          font-size:15px;}
+        .si-amber{background:#fef9c3;color:#92400e;}
+        .si-blue{background:#dbeafe;color:#1d4ed8;}
+        .si-green{background:#dcfce7;color:#15803d;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="page-header">
+        <div>
+            <h4 style="margin:0;font-size:20px;font-weight:600;">
+                Result Verification
+            </h4>
+            <p style="margin:4px 0 0;font-size:13px;
+                color:var(--muted);">
+                Review and verify lab results from technicians
+            </p>
+        </div>
+    </div>
+
+    <div class="stats-strip">
+        <div class="strip-card">
+            <div class="si si-amber">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <div>
+                <div style="font-size:20px;font-weight:600;"
+                     th:text="${results.size()}">0</div>
+                <div style="font-size:12px;color:var(--muted);">
+                    Pending Verification
+                </div>
+            </div>
+        </div>
+        <div class="strip-card">
+            <div class="si si-blue">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div>
+                <div style="font-size:20px;font-weight:600;"
+                     th:text="${flaggedCount}">
+                    0
+                </div>
+                <div style="font-size:12px;color:var(--muted);">
+                    Flagged Results
+                </div>
+            </div>
+        </div>
+        <div class="strip-card">
+            <div class="si si-green">
+                <i class="bi bi-patch-check-fill"></i>
+            </div>
+            <div>
+                <div style="font-size:20px;font-weight:600;">
+                    —
+                </div>
+                <div style="font-size:12px;color:var(--muted);">
+                    Verified Today
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results list -->
+    <div th:if="${not #lists.isEmpty(results)}">
+        <div class="result-card"
+             th:each="r : ${results}">
+            <div class="rc-header">
+                <div>
+                    <div class="rc-patient"
+                         th:text="${r.orderItem.order.patient
+                           .fullName}">
+                        Patient
+                    </div>
+                    <div class="rc-sub">
+            <span th:text="${r.orderItem.test.testName}">
+              Test
+            </span>
+                        ·
+                        <span th:text="${r.orderItem.test
+                              .department.name}">
+              Dept
+            </span>
+                        · Sample:
+                        <span style="font-family:monospace;"
+                              th:text="${r.sample.barcode}">
+              BC
+            </span>
+                        · Entered by:
+                        <span th:text="${r.enteredBy?.fullName
+                              ?: '—'}">
+              Tech
+            </span>
+                    </div>
+                </div>
+                <span th:switch="${r.flag}">
+          <span th:case="'CRITICAL'"
+                class="pill pill-red">
+            ⚠️ Critical
+          </span>
+          <span th:case="'HIGH'"
+                class="pill pill-amber">⬆️ High</span>
+          <span th:case="'LOW'"
+                class="pill pill-blue">⬇️ Low</span>
+          <span th:case="*"
+                class="pill pill-green">
+            ✅ Normal
+          </span>
+        </span>
+            </div>
+
+            <div class="result-row">
+                <div class="test-name"
+                     th:text="${r.orderItem.test.testName}">
+                    Test Name
+                </div>
+                <div class="result-value"
+                     th:text="${r.resultValue ?: '—'}">
+                    Value
+                </div>
+                <div class="range"
+                     th:text="${r.unit ?: ''}">Unit</div>
+                <div class="range">
+                    Ref:
+                    <span th:text="${r.normalRange ?: 'N/A'}">
+            Range
+          </span>
+                </div>
+                <div th:if="${r.flag}"
+                     th:classappend="'flag-' + ${r.flag}"
+                     th:text="${r.flag}">
+                    FLAG
+                </div>
+            </div>
+
+            <form th:action="@{/doctor/results/{id}/verify(
+                          id=${r.id})}"
+                  method="post">
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}"/>
+
+                <div style="padding:12px 22px;
+                    background:#f8fafc;">
+                    <label style="font-size:12px;font-weight:500;
+                        display:block;margin-bottom:6px;">
+                        Doctor's Remarks (optional)
+                    </label>
+                    <textarea class="remarks-area" name="remarks"
+                              rows="2"
+                              th:text="${r.remarks}"
+                              placeholder="Add clinical remarks...">
+          </textarea>
+                </div>
+
+                <div class="rc-footer">
+                    <button type="button" class="btn-retest"
+                            th:formaction="@{/doctor/results/{id}
+                    /reject(id=${r.id})}">
+                        Request Re-test
+                    </button>
+                    <button type="submit" class="btn-verify">
+                        <i class="bi bi-patch-check"></i>
+                        Verify &amp; Approve
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <div class="empty-state"
+         th:if="${#lists.isEmpty(results)}">
+        <span>🔍</span>
+        <p style="font-size:15px;font-weight:500;
+              margin-bottom:6px;">
+            No results pending verification
+        </p>
+        <p style="font-size:13px;">
+            Results submitted by lab technicians will appear here.
+        </p>
+    </div>
+
+</div>
+<th:block layout:fragment="scripts">
+    <script>
+        function filterResults(flag, btn) {
+            document.querySelectorAll('.tab')
+                .forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+        }
+    </script>
+</th:block>
+</body>
+</html>

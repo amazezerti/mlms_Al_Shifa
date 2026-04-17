@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Results History</title>
+    <style>
+        .page-header{display:flex;justify-content:space-between;
+          align-items:center;margin-bottom:24px;}
+        .page-header h4{margin:0;font-size:20px;font-weight:600;}
+        .hist-row{background:white;border-radius:12px;
+          border:1px solid var(--border);margin-bottom:10px;
+          padding:14px 20px;display:flex;align-items:center;
+          gap:14px;transition:box-shadow .2s;}
+        .hist-row:hover{box-shadow:0 4px 14px rgba(0,0,0,.07);}
+        .order-badge{font-family:monospace;font-size:12px;
+          font-weight:600;background:#ede9fe;color:#6d28d9;
+          padding:3px 10px;border-radius:6px;flex-shrink:0;}
+        .btn-print{background:#6d28d9;color:white;border:none;
+          border-radius:8px;padding:6px 14px;font-size:12px;
+          font-weight:500;cursor:pointer;text-decoration:none;
+          display:inline-flex;align-items:center;gap:5px;
+          transition:opacity .2s;}
+        .btn-print:hover{opacity:.85;color:white;}
+        .empty-state{text-align:center;padding:60px;
+          color:var(--muted);}
+        .empty-state span{font-size:52px;display:block;
+          margin-bottom:12px;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="page-header">
+        <div>
+            <h4>Results History</h4>
+            <p style="margin:4px 0 0;font-size:13px;
+                 color:var(--muted);">
+                All results you have entered — records stay
+                permanently after verification
+            </p>
+        </div>
+        <a th:href="@{/technician/results}"
+           class="btn-xs btn-outline-xs">
+            ← Enter Results
+        </a>
+    </div>
+
+    <!-- Search -->
+    <div style="display:flex;gap:10px;margin-bottom:18px;">
+        <input type="text" id="histSearch"
+               placeholder="Search by patient name or order code..."
+               oninput="filterHist(this.value)"
+               style="flex:1;border:1.5px solid var(--border);
+                      border-radius:10px;padding:9px 16px;
+                      font-size:13px;outline:none;
+                      font-family:'DM Sans',sans-serif;
+                      transition:border-color .2s;"
+               onfocus="this.style.borderColor='#6d28d9'"
+               onblur="this.style.borderColor='var(--border)'"/>
+    </div>
+
+    <div id="histList" th:if="${not #lists.isEmpty(results)}">
+        <div class="hist-row"
+             th:each="r : ${results}">
+            <div class="order-badge"
+                 th:text="${r.orderItem.order.orderCode}">
+                ORD
+            </div>
+            <div style="flex:1;">
+                <div style="font-size:13px;font-weight:600;"
+                     th:text="${r.orderItem.order.patient
+                         .fullName}">
+                    Patient
+                </div>
+                <div style="font-size:11px;color:var(--muted);
+                    margin-top:2px;">
+          <span th:text="${r.orderItem.test.testName}">
+            Test
+          </span>
+                    · Value:
+                    <strong th:text="${r.resultValue ?: '—'}">
+                        —
+                    </strong>
+                    · Status:
+                    <span th:text="${r.status}">ENTERED</span>
+                    · Entered:
+                    <span th:if="${r.enteredAt != null}"
+                          th:text="${#temporals.format(
+                  r.enteredAt,'dd MMM yyyy HH:mm')}">
+            date
+          </span>
+                </div>
+            </div>
+            <span class="pill"
+                  th:classappend="${r.status == 'VERIFIED'}
+              ? 'pill-green'
+              : (${r.status == 'ENTERED'}
+                ? 'pill-amber' : 'pill-gray')"
+                  th:text="${r.status}">
+        STATUS
+      </span>
+            <a th:href="@{/technician/print/{id}(
+                    id=${r.orderItem.order.id})}"
+               class="btn-print"
+               target="_blank">
+                <i class="bi bi-printer"></i> Print
+            </a>
+        </div>
+    </div>
+
+    <div class="empty-state"
+         th:if="${#lists.isEmpty(results)}">
+        <span>📋</span>
+        <p style="font-size:15px;font-weight:500;
+               margin-bottom:6px;">
+            No results entered yet
+        </p>
+        <p style="font-size:13px;">
+            Results you enter will be permanently
+            recorded here.
+        </p>
+    </div>
+
+</div>
+<th:block layout:fragment="scripts">
+  <script>
+    function filterHist(q) {
+      document.querySelectorAll('.hist-row').forEach(function(r) {
+        r.style.display =
+          r.textContent.toLowerCase()
+            .includes(q.toLowerCase()) ? '' : 'none';
+      });
+    }
+  </script>
+</th:block>
+</body>
+</html>

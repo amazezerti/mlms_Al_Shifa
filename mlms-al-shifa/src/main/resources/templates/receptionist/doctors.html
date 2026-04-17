@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Doctors</title>
+  <style>
+    .filter-bar{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;}
+    .filter-btn{padding:7px 18px;border-radius:20px;font-size:13px;
+      font-weight:500;border:1.5px solid var(--border);background:white;
+      color:var(--muted);cursor:pointer;transition:all 0.15s;
+      text-decoration:none;}
+    .filter-btn.active,.filter-btn:hover{
+      background:#0f7a58;border-color:#0f7a58;color:white;}
+    .doctors-grid{display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;}
+    .doctor-card{background:white;border-radius:16px;
+      border:1px solid var(--border);overflow:hidden;
+      transition:box-shadow 0.2s,transform 0.2s;}
+    .doctor-card:hover{
+      box-shadow:0 8px 30px rgba(0,0,0,0.1);transform:translateY(-2px);}
+    .doctor-card-top{
+      background:linear-gradient(135deg,#064e3b,#0f7a58);
+      padding:24px;display:flex;flex-direction:column;
+      align-items:center;gap:12px;}
+    .doctor-card-top.no-profile{
+      background:linear-gradient(135deg,#374151,#6b7280);}
+    .doc-avatar{width:68px;height:68px;border-radius:50%;
+      background:rgba(255,255,255,0.2);
+      border:3px solid rgba(255,255,255,0.4);
+      display:flex;align-items:center;justify-content:center;
+      font-size:24px;font-weight:600;color:white;text-transform:uppercase;}
+    .doc-name{font-size:15px;font-weight:600;color:white;text-align:center;}
+    .doc-dept{font-size:12px;color:rgba(255,255,255,0.7);text-align:center;}
+    .doctor-card-body{padding:18px;}
+    .doc-info-row{display:flex;align-items:center;gap:8px;
+      font-size:12px;color:var(--muted);margin-bottom:8px;}
+    .doc-info-row i{font-size:13px;color:#0f7a58;width:14px;}
+    .doc-info-row span{color:var(--text);}
+    .doc-stats{display:flex;gap:0;border-top:1px solid var(--border);
+      margin-top:14px;}
+    .doc-stat{flex:1;text-align:center;padding:12px 8px;}
+    .doc-stat:not(:last-child){border-right:1px solid var(--border);}
+    .doc-stat .val{font-size:18px;font-weight:600;color:#0f7a58;}
+    .doc-stat .lbl{font-size:10px;color:var(--muted);margin-top:2px;}
+    .no-doctors{text-align:center;padding:60px;color:var(--muted);}
+    .no-doctors span{font-size:48px;display:block;margin-bottom:12px;}
+    .no-profile-badge{background:rgba(255,255,255,0.15);
+      color:rgba(255,255,255,0.8);font-size:10px;padding:2px 8px;
+      border-radius:10px;}
+  </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+  <div style="display:flex;justify-content:space-between;
+              align-items:center;margin-bottom:20px;">
+    <div>
+      <h4 style="margin:0;font-size:20px;font-weight:600;">
+        Medical Doctors
+      </h4>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">
+        Browse doctors by department and view their profiles
+      </p>
+    </div>
+  </div>
+
+  <!-- Department filter -->
+  <div class="filter-bar">
+    <a th:href="@{/receptionist/doctors}"
+       class="filter-btn"
+       th:classappend="${selectedDept == null} ? 'active' : ''">
+      All Departments
+    </a>
+    <a th:each="d : ${departments}"
+       th:href="@{/receptionist/doctors(deptId=${d.id})}"
+       class="filter-btn"
+       th:classappend="${selectedDept != null
+         and selectedDept == d.id} ? 'active' : ''"
+       th:text="${d.name}">Dept</a>
+  </div>
+
+  <!--
+    Show doctors WITH profiles first (with full info).
+    Then show doctor users WITHOUT profiles (greyed out).
+  -->
+
+  <!-- Doctors with full profiles -->
+  <div class="doctors-grid"
+       th:if="${not #lists.isEmpty(doctors)}">
+    <div class="doctor-card" th:each="doc : ${doctors}">
+      <div class="doctor-card-top">
+        <div class="doc-avatar"
+             th:text="${#strings.substring(
+               doc.user.fullName,0,2)}">DR</div>
+        <div class="doc-name"
+             th:text="${'Dr. ' + doc.user.fullName}">
+          Doctor Name
+        </div>
+        <div class="doc-dept"
+             th:text="${doc.department.name}">Department</div>
+      </div>
+      <div class="doctor-card-body">
+        <div class="doc-info-row" th:if="${doc.specialization}">
+          <i class="bi bi-award-fill"></i>
+          <span th:text="${doc.specialization}">Spec</span>
+        </div>
+        <div class="doc-info-row" th:if="${doc.qualification}">
+          <i class="bi bi-mortarboard-fill"></i>
+          <span th:text="${doc.qualification}">Qual</span>
+        </div>
+        <div class="doc-info-row" th:if="${doc.licenseNumber}">
+          <i class="bi bi-card-checklist"></i>
+          <span th:text="${'Lic: ' + doc.licenseNumber}">Lic</span>
+        </div>
+        <div class="doc-info-row" th:if="${doc.user.email}">
+          <i class="bi bi-envelope-fill"></i>
+          <span th:text="${doc.user.email}">Email</span>
+        </div>
+        <div class="doc-info-row" th:if="${doc.user.phone}">
+          <i class="bi bi-telephone-fill"></i>
+          <span th:text="${doc.user.phone}">Phone</span>
+        </div>
+        <div class="doc-stats">
+          <div class="doc-stat">
+            <div class="val"
+                 th:text="${doc.yearsExperience ?: 0}">0</div>
+            <div class="lbl">Years Exp.</div>
+          </div>
+          <div class="doc-stat">
+            <div class="val pill pill-green"
+                 th:text="${doc.active ? 'Active' : 'Off'}">
+              Active
+            </div>
+            <div class="lbl">Status</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--
+    Doctor users WITHOUT profiles (always shown when no dept filter,
+    or after the filtered results if this view is "All").
+    The controller passes doctorUsers = empty list when a dept filter
+    is active.
+  -->
+  <div th:if="${not #lists.isEmpty(doctorUsers)}">
+    <p style="font-size:13px;color:var(--muted);
+              margin:20px 0 12px;"
+       th:if="${not #lists.isEmpty(doctors)}">
+      Other registered doctors (no profile assigned yet):
+    </p>
+    <p style="font-size:13px;color:var(--muted);
+              margin:0 0 12px;"
+       th:if="${#lists.isEmpty(doctors)}">
+      Showing all registered doctor accounts
+      (no detailed profiles created yet):
+    </p>
+    <div class="doctors-grid">
+      <div class="doctor-card" th:each="u : ${doctorUsers}">
+        <div class="doctor-card-top no-profile">
+          <div class="doc-avatar"
+               th:text="${#strings.substring(u.fullName,0,2)}">
+            DR
+          </div>
+          <div class="doc-name"
+               th:text="'Dr. ' + ${u.fullName}">Doctor</div>
+          <span class="no-profile-badge">No profile yet</span>
+        </div>
+        <div class="doctor-card-body">
+          <div class="doc-info-row" th:if="${u.email}">
+            <i class="bi bi-envelope-fill"></i>
+            <span th:text="${u.email}">Email</span>
+          </div>
+          <div class="doc-info-row" th:if="${u.phone}">
+            <i class="bi bi-telephone-fill"></i>
+            <span th:text="${u.phone}">Phone</span>
+          </div>
+          <div class="doc-stats">
+            <div class="doc-stat">
+              <div class="val pill"
+                   th:classappend="${u.enabled}
+                     ? 'pill-green' : 'pill-red'"
+                   th:text="${u.enabled ? 'Active' : 'Off'}">
+                Active
+              </div>
+              <div class="lbl">Status</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="no-doctors"
+       th:if="${#lists.isEmpty(doctors)
+                and #lists.isEmpty(doctorUsers)}">
+    <span>👨‍⚕️</span>
+    <p>No doctors found.</p>
+    <p style="font-size:12px;">
+      Ask the administrator to add doctor accounts and profiles.
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

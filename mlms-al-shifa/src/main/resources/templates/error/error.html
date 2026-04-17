@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${errorCode + ' — ' + errorTitle}">Error</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap"
+          rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+          rel="stylesheet"/>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f0f6fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                radial-gradient(circle at 15% 15%,
+                    rgba(10,92,127,0.06) 0%,
+                    transparent 55%),
+                radial-gradient(circle at 85% 85%,
+                    rgba(2,195,154,0.05) 0%,
+                    transparent 55%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .error-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 580px;
+        }
+
+        /* Hospital brand bar at top */
+        .brand-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            background: #0a5c7f;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .brand-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .brand-logo-fallback {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .brand-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0a5c7f;
+        }
+
+        /* Main card */
+        .error-card {
+            background: white;
+            border-radius: 20px;
+            padding: 52px 48px;
+            text-align: center;
+            box-shadow: 0 4px 40px rgba(10,92,127,0.08);
+            border: 1px solid #daeaf3;
+        }
+
+        /* Dynamic accent based on error code */
+        .error-card[data-code="400"] {
+            --clr: #f59e0b;
+            --clr-bg: #fffbeb;
+            --clr-border: #fde68a;
+        }
+        .error-card[data-code="401"] {
+            --clr: #7c3aed;
+            --clr-bg: #f5f3ff;
+            --clr-border: #ddd6fe;
+        }
+        .error-card[data-code="403"] {
+            --clr: #dc2626;
+            --clr-bg: #fef2f2;
+            --clr-border: #fecaca;
+        }
+        .error-card[data-code="404"] {
+            --clr: #0a5c7f;
+            --clr-bg: #e8f4fd;
+            --clr-border: #bae6fd;
+        }
+        .error-card[data-code="405"] {
+            --clr: #7c3aed;
+            --clr-bg: #f5f3ff;
+            --clr-border: #ddd6fe;
+        }
+        .error-card[data-code="408"] {
+            --clr: #f59e0b;
+            --clr-bg: #fffbeb;
+            --clr-border: #fde68a;
+        }
+        .error-card[data-code="500"] {
+            --clr: #dc2626;
+            --clr-bg: #fef2f2;
+            --clr-border: #fecaca;
+        }
+        .error-card[data-code="503"] {
+            --clr: #dc2626;
+            --clr-bg: #fef2f2;
+            --clr-border: #fecaca;
+        }
+
+        .error-icon-wrap {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: var(--clr-bg, #e8f4fd);
+            border: 2px solid var(--clr-border, #bae6fd);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 28px;
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50%       { transform: scale(1.04); }
+        }
+
+        .error-icon-wrap i {
+            font-size: 38px;
+            color: var(--clr, #0a5c7f);
+        }
+
+        .error-code-display {
+            font-size: 80px;
+            font-weight: 600;
+            color: var(--clr, #0a5c7f);
+            line-height: 1;
+            margin-bottom: 14px;
+            letter-spacing: -3px;
+            opacity: 0.9;
+        }
+
+        .error-title-text {
+            font-size: 22px;
+            font-weight: 600;
+            color: #0d1b2a;
+            margin-bottom: 14px;
+        }
+
+        .error-message-text {
+            font-size: 14px;
+            color: #5a7a8a;
+            line-height: 1.75;
+            margin-bottom: 28px;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .error-url-display {
+            font-size: 12px;
+            color: #94a3b8;
+            font-family: 'Courier New', monospace;
+            background: #f8fafc;
+            padding: 7px 16px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            display: inline-block;
+            margin-bottom: 32px;
+            word-break: break-all;
+            max-width: 100%;
+        }
+
+        .error-divider {
+            height: 1px;
+            background: #f0f6fa;
+            margin: 0 0 28px;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 11px 22px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-back:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .btn-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 11px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s;
+            background: var(--clr, #0a5c7f);
+            color: white;
+            border: none;
+        }
+
+        .btn-home:hover {
+            opacity: 0.85;
+            color: white;
+        }
+
+        .btn-login {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 11px 22px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+            background: var(--clr, #0a5c7f);
+            color: white;
+            border: none;
+        }
+
+        .btn-login:hover {
+            opacity: 0.85;
+            color: white;
+        }
+
+        /* Help text */
+        .help-text {
+            margin-top: 28px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .help-text a {
+            color: var(--clr, #0a5c7f);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .help-text a:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        .page-footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 12px;
+            color: #a0b4be;
+        }
+
+        /* Responsive */
+        @media (max-width: 520px) {
+            .error-card {
+                padding: 36px 24px;
+            }
+            .error-code-display {
+                font-size: 64px;
+            }
+            .error-title-text {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="error-wrapper">
+
+    <!-- Brand bar -->
+    <div class="brand-bar">
+        <div class="brand-logo">
+            <img th:src="@{/img/alshifa_logo.png}"
+                 alt="Logo"
+                 onerror="this.style.display='none';
+                          this.nextElementSibling.style.display='flex';"/>
+            <div class="brand-logo-fallback"
+                 style="display:none;">A</div>
+        </div>
+        <span class="brand-name">Al-Shifa Hospital MLMS</span>
+    </div>
+
+    <!-- Error card -->
+    <div class="error-card"
+         th:attr="data-code=${errorCode}">
+
+        <!-- Animated icon -->
+        <div class="error-icon-wrap">
+            <i class="bi"
+               th:classappend="${errorCode == '400'} ? 'bi-exclamation-triangle-fill'
+                 : (${errorCode == '401'} ? 'bi-lock-fill'
+                 : (${errorCode == '403'} ? 'bi-shield-x-fill'
+                 : (${errorCode == '404'} ? 'bi-search'
+                 : (${errorCode == '405'} ? 'bi-slash-circle-fill'
+                 : (${errorCode == '408'} ? 'bi-clock-fill'
+                 : (${errorCode == '503'} ? 'bi-tools'
+                 : 'bi-bug-fill'))))))">
+            </i>
+        </div>
+
+        <!-- Error code -->
+        <div class="error-code-display"
+             th:text="${errorCode}">500</div>
+
+        <!-- Title -->
+        <h1 class="error-title-text"
+            th:text="${errorTitle}">Error</h1>
+
+        <!-- Message -->
+        <p class="error-message-text"
+           th:text="${errorMessage}">
+            Something went wrong.
+        </p>
+
+        <!-- Requested URL -->
+        <div class="error-url-display"
+             th:if="${requestedUrl != null
+                      and !#strings.isEmpty(requestedUrl)
+                      and requestedUrl != '/'}">
+            <span style="color:#94a3b8;">Requested: </span>
+            <span th:text="${requestedUrl}"></span>
+        </div>
+
+        <div class="error-divider"></div>
+
+        <!-- Action buttons -->
+        <div class="error-actions">
+
+            <!-- Always show Back -->
+            <a href="javascript:history.back()"
+               class="btn-back">
+                <i class="bi bi-arrow-left"></i> Go Back
+            </a>
+
+            <!-- Show Login for 401 -->
+            <a th:if="${errorCode == '401'}"
+               th:href="@{/login}"
+               class="btn-login">
+                <i class="bi bi-box-arrow-in-right"></i>
+                Sign In
+            </a>
+
+            <!-- Show Dashboard for all others -->
+            <a th:unless="${errorCode == '401'}"
+               th:href="@{/dashboard}"
+               class="btn-home">
+                <i class="bi bi-house-fill"></i>
+                Return to Dashboard
+            </a>
+
+        </div>
+
+        <!-- Help text -->
+        <div class="help-text">
+            If this problem persists, contact your system administrator
+            or <a th:href="@{/login}">sign in again</a>.
+        </div>
+
+    </div>
+
+    <!-- Page footer -->
+    <div class="page-footer">
+        Al-Shifa Hospital &copy; 2024 — N'Djamena, Chad
+    </div>
+
+</div>
+
+</body>
+</html>

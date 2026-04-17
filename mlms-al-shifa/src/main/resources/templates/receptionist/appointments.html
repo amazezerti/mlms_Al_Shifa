@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Appointments</title>
+  <style>
+    .appt-layout{display:grid;
+      grid-template-columns:280px 1fr;gap:20px;align-items:start;}
+    .filter-panel{background:white;border-radius:14px;
+      border:1px solid var(--border);padding:20px;
+      position:sticky;top:80px;}
+    .filter-panel h5{font-size:14px;font-weight:600;margin:0 0 16px;}
+    .fg{margin-bottom:14px;}
+    .fg label{display:block;font-size:12px;font-weight:500;
+      margin-bottom:5px;color:var(--text);}
+    .fg select{width:100%;border:1.5px solid var(--border);
+      border-radius:9px;padding:8px 12px;font-size:13px;
+      font-family:'DM Sans',sans-serif;outline:none;
+      transition:border-color .2s;}
+    .fg select:focus{border-color:#0f7a58;}
+    .btn-green{background:#0f7a58;color:white;border:none;
+      border-radius:9px;padding:9px 16px;font-size:13px;
+      font-weight:500;cursor:pointer;width:100%;
+      font-family:'DM Sans',sans-serif;}
+    .slots-table{width:100%;border-collapse:collapse;}
+    .slots-table th{font-size:11px;font-weight:600;
+      letter-spacing:.06em;text-transform:uppercase;
+      color:var(--muted);padding:10px 16px;
+      border-bottom:1px solid var(--border);text-align:left;}
+    .slots-table td{padding:11px 16px;font-size:13px;
+      color:var(--text);border-bottom:1px solid #f5f8fb;
+      vertical-align:middle;}
+    .slots-table tr:last-child td{border-bottom:none;}
+    .slots-table tr:hover td{background:#fafcfd;}
+    .no-slots-msg{text-align:center;padding:40px;color:var(--muted);}
+    .no-slots-msg span{font-size:40px;display:block;margin-bottom:10px;}
+    .date-badge{background:#f0fdf4;color:#0f7a58;font-size:11px;
+      font-weight:600;padding:3px 10px;border-radius:6px;
+      font-family:monospace;}
+    .btn-book{background:#0f7a58;color:white;border:none;
+      border-radius:7px;padding:5px 14px;font-size:12px;
+      cursor:pointer;white-space:nowrap;
+      font-family:'DM Sans',sans-serif;transition:opacity .2s;}
+    .btn-book:hover{opacity:.85;}
+    .modal-overlay{display:none;position:fixed;inset:0;
+      background:rgba(0,0,0,0.4);z-index:2000;
+      align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal-box{background:white;border-radius:18px;
+      padding:28px;width:100%;max-width:440px;}
+    .modal-header-row{display:flex;justify-content:space-between;
+      align-items:center;margin-bottom:18px;}
+    .modal-header-row h4{margin:0;font-size:15px;font-weight:600;}
+    .modal-close{background:none;border:none;font-size:22px;
+      cursor:pointer;color:var(--muted);line-height:1;padding:0;}
+    .modal-close:hover{color:var(--text);}
+    .mf{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+    .btn-cancel{background:#f1f5f9;color:var(--text);
+      border:none;border-radius:9px;padding:9px 18px;
+      font-size:13px;cursor:pointer;}
+    .slot-info-box{background:#f0fdf4;border:1px solid #86efac;
+      border-radius:8px;padding:10px 14px;font-size:12px;
+      color:#0f7a58;margin-bottom:14px;}
+  </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+  <div style="margin-bottom:24px;">
+    <h4 style="margin:0;font-size:20px;font-weight:600;">
+      Appointment Booking
+    </h4>
+    <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">
+      Select a doctor to see all available slots, then book for a patient
+    </p>
+  </div>
+
+  <div class="appt-layout">
+
+    <!-- Filter Panel — doctor selection only -->
+    <div class="filter-panel">
+      <h5>👨‍⚕️ Select Doctor</h5>
+      <form th:action="@{/receptionist/appointments}" method="get">
+        <div class="fg">
+          <label>Doctor *</label>
+          <select name="doctorId" onchange="this.form.submit()">
+            <option value="">— Select doctor —</option>
+            <option th:each="d : ${allDoctors}"
+                    th:value="${d.id}"
+                    th:selected="${selectedDoctorId != null
+                      and selectedDoctorId == d.id}"
+                    th:text="${'Dr. ' + d.fullName}">
+              Doctor
+            </option>
+          </select>
+        </div>
+        <button type="submit" class="btn-green">
+          <i class="bi bi-calendar2-check"></i> View Slots
+        </button>
+      </form>
+      <div th:if="${selectedDoctorId == null}"
+           style="margin-top:14px;font-size:12px;
+                  color:var(--muted);text-align:center;padding:12px;">
+        Select a doctor to view available appointment slots
+      </div>
+      <div th:if="${selectedDoctorId != null
+                   and #lists.isEmpty(slots)}"
+           style="margin-top:12px;font-size:12px;
+                  color:var(--muted);text-align:center;">
+        No available future slots for this doctor.<br/>
+        Ask the administrator to add availability slots.
+      </div>
+    </div>
+
+    <!-- Slots Panel -->
+    <div>
+      <div class="content-card">
+        <div class="cc-header">
+          <h5 th:if="${selectedDoctorId != null}">
+            Available Slots
+            <span style="font-weight:400;color:var(--muted);"
+                  th:if="${not #lists.isEmpty(slots)}">
+              — <span th:text="${slots.size()}">0</span> slot(s)
+            </span>
+          </h5>
+          <h5 th:unless="${selectedDoctorId != null}">
+            Select a doctor to view availability
+          </h5>
+        </div>
+        <div class="cc-body">
+
+          <div th:if="${selectedDoctorId != null
+                        and not #lists.isEmpty(slots)}">
+            <table class="slots-table">
+              <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr th:each="slot : ${slots}">
+                <td>
+                  <span class="date-badge"
+                        th:text="${#temporals.format(
+                          slot.slotDate,'EEE, dd MMM yyyy')}">
+                    Mon, 01 Jan
+                  </span>
+                </td>
+                <td>
+                  <span style="font-weight:500;">
+                    <span th:text="${#temporals.format(
+                      slot.startTime,'HH:mm')}">09:00</span>
+                    –
+                    <span th:text="${#temporals.format(
+                      slot.endTime,'HH:mm')}">09:30</span>
+                  </span>
+                </td>
+                <td>
+                  <span class="pill pill-green">Available</span>
+                </td>
+                <td>
+                  <button type="button" class="btn-book"
+                          th:attr="data-slot-id=${slot.id},
+                            data-slot-time=${#temporals.format(
+                              slot.slotDate,'dd MMM')}+' '+
+                              ${#temporals.format(slot.startTime,'HH:mm')}
+                              +' – '+${#temporals.format(
+                              slot.endTime,'HH:mm')}">
+                    Book Slot
+                  </button>
+                </td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="no-slots-msg"
+               th:if="${selectedDoctorId == null
+                         or #lists.isEmpty(slots)}">
+            <span>📆</span>
+            <p th:if="${selectedDoctorId == null}">
+              Select a doctor from the panel to view available slots.
+            </p>
+            <p th:if="${selectedDoctorId != null
+                        and #lists.isEmpty(slots)}">
+              No available slots found for this doctor.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Book Slot Modal -->
+  <div class="modal-overlay" id="bookModal">
+    <div class="modal-box">
+      <div class="modal-header-row">
+        <h4>📅 Book Appointment</h4>
+        <button class="modal-close" type="button"
+                onclick="closeModal('bookModal')">×</button>
+      </div>
+      <form th:action="@{/receptionist/appointments/book}"
+            method="post">
+        <input type="hidden"
+               th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}"/>
+        <input type="hidden" name="slotId" id="bookSlotId"/>
+
+        <div class="slot-info-box">
+          <i class="bi bi-clock"></i>
+          Slot: <strong id="bookSlotTime">—</strong>
+        </div>
+
+        <div class="fg">
+          <label>Patient *</label>
+          <select name="patientId" required>
+            <option value="">— Select patient —</option>
+            <option th:each="p : ${patients}"
+                    th:value="${p.id}"
+                    th:text="${p.fullName}
+                              +' ('+${p.patientCode}+')'">
+              Patient
+            </option>
+          </select>
+        </div>
+
+        <div class="fg">
+          <label>Reason (optional)</label>
+          <input type="text" name="reason"
+                 style="width:100%;border:1.5px solid var(--border);
+                        border-radius:9px;padding:8px 12px;
+                        font-size:13px;font-family:'DM Sans',sans-serif;
+                        outline:none;"
+                 placeholder="e.g. Blood test"/>
+        </div>
+
+        <div class="mf">
+          <button type="button" class="btn-cancel"
+                  onclick="closeModal('bookModal')">Cancel</button>
+          <button type="submit" class="btn-green"
+                  style="width:auto;">Confirm Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+<th:block layout:fragment="scripts">
+  <script>
+    function openModal(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.add('open');
+    }
+    function closeModal(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('open');
+    }
+    document.querySelectorAll('.modal-overlay').forEach(function(o) {
+        o.addEventListener('click', function(e) {
+            if (e.target === o) o.classList.remove('open');
+        });
+    });
+
+    // Event delegation for Book Slot buttons
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.btn-book');
+        if (!btn) return;
+        document.getElementById('bookSlotId').value =
+            btn.dataset.slotId;
+        document.getElementById('bookSlotTime').textContent =
+            btn.dataset.slotTime;
+        openModal('bookModal');
+    });
+  </script>
+</th:block>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Lab Workstation</title>
+    <style>
+        .stats-grid{display:grid;
+          grid-template-columns:repeat(3,1fr);
+          gap:16px;margin-bottom:28px;}
+        .hero{background:linear-gradient(
+            135deg,#1e1b4b,#312e6e,#6d28d9);
+          border-radius:18px;padding:32px 36px;color:white;
+          display:flex;justify-content:space-between;
+          align-items:center;margin-bottom:28px;
+          position:relative;overflow:hidden;}
+        .hero::after{content:'';position:absolute;
+          right:-40px;top:-40px;width:200px;height:200px;
+          border-radius:50%;background:rgba(255,255,255,.05);}
+        .hero h2{font-size:22px;font-weight:600;margin:0 0 6px;}
+        .hero p{font-size:14px;opacity:.85;margin:0 0 18px;}
+        .hero-stat{display:inline-flex;align-items:center;gap:8px;
+          background:rgba(255,255,255,.12);border-radius:8px;
+          padding:6px 14px;font-size:13px;margin-right:8px;}
+        .hero-icon{font-size:80px;opacity:.12;position:absolute;
+          right:60px;top:-10px;}
+        .i-purple{background:#ede9fe;color:#6d28d9;}
+        .i-amber{background:#fef9c3;color:#92400e;}
+        .i-green{background:#dcfce7;color:#15803d;}
+        .i-blue{background:#dbeafe;color:#1d4ed8;}
+        .recent-order-row{display:flex;align-items:center;gap:12px;
+          padding:12px 0;border-bottom:1px solid #f5f3ff;}
+        .recent-order-row:last-child{border-bottom:none;}
+        .ro-code{font-family:monospace;font-size:12px;
+          font-weight:600;background:#ede9fe;color:#6d28d9;
+          padding:3px 10px;border-radius:6px;flex-shrink:0;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="hero">
+        <div style="z-index:1;">
+            <h2>Lab Workstation ⚗️</h2>
+            <p>Process your assigned orders and submit results.</p>
+            <span class="hero-stat">
+        <i class="bi bi-list-task"></i>
+        <span th:text="${assignedCount}+' Orders'">
+          0 Orders
+        </span>
+      </span>
+            <span class="hero-stat">
+        <i class="bi bi-droplet-half"></i>
+        <span th:text="${pendingSamplesCount}+' Samples'">
+          0 Samples
+        </span>
+      </span>
+        </div>
+        <div class="hero-icon">🧬</div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="s-icon i-purple">
+                <i class="bi bi-list-task"></i>
+            </div>
+            <div class="s-value"
+                 th:text="${assignedCount}">0</div>
+            <div class="s-label">Confirmed Orders</div>
+            <div class="s-trend">
+                <i class="bi bi-clock"></i> Ready to process
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="s-icon i-amber">
+                <i class="bi bi-droplet-half"></i>
+            </div>
+            <div class="s-value"
+                 th:text="${pendingSamplesCount}">0</div>
+            <div class="s-label">Pending Samples</div>
+            <div class="s-trend">
+                <i class="bi bi-dash"></i> Awaiting collection
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="s-icon i-blue">
+                <i class="bi bi-journal-text"></i>
+            </div>
+            <div class="s-value"
+                 th:text="${resultsToEnterCount}">0</div>
+            <div class="s-label">Results to Enter</div>
+            <div class="s-trend">
+                <i class="bi bi-clock"></i> Pending entry
+            </div>
+        </div>
+    </div>
+
+    <div style="display:grid;
+              grid-template-columns:1fr 1fr;
+              gap:20px;">
+
+        <div class="content-card">
+            <div class="cc-header">
+                <h5>Recent Confirmed Orders</h5>
+                <a th:href="@{/technician/orders}"
+                   style="font-size:12px;color:#6d28d9;
+                  text-decoration:none;">
+                    View all →
+                </a>
+            </div>
+            <div class="cc-body" style="padding:0 22px;">
+                <div th:each="o : ${recentOrders}"
+                     class="recent-order-row">
+                    <div class="ro-code"
+                         th:text="${o.orderCode}">ORD</div>
+                    <div style="flex:1;">
+                        <div style="font-size:13px;font-weight:500;"
+                             th:text="${o.patient.fullName}">
+                            Patient
+                        </div>
+                        <div style="font-size:11px;color:var(--muted);">
+              <span th:text="${o.items.size()}+' tests'">
+                0 tests
+              </span>
+                            ·
+                            <span th:text="${#temporals.format(
+                o.orderedAt,'dd MMM')}">
+                date
+              </span>
+                        </div>
+                    </div>
+                    <span th:switch="${o.priority}">
+            <span th:case="'URGENT'"
+                  class="pill pill-red">URGENT</span>
+            <span th:case="'STAT'"
+                  class="pill pill-amber">STAT</span>
+            <span th:case="*"
+                  class="pill pill-gray">NORMAL</span>
+          </span>
+                </div>
+                <div th:if="${#lists.isEmpty(recentOrders)}"
+                     style="padding:20px;text-align:center;
+                    color:var(--muted);font-size:13px;">
+                    No orders yet. Check back after doctor confirms.
+                </div>
+            </div>
+        </div>
+
+        <div class="content-card">
+            <div class="cc-header">
+                <h5>Quick Actions</h5>
+            </div>
+            <div class="cc-body">
+                <a th:href="@{/technician/samples}"
+                   style="display:flex;align-items:center;
+                  gap:12px;padding:14px;
+                  background:#f5f3ff;border-radius:10px;
+                  text-decoration:none;color:#6d28d9;
+                  margin-bottom:10px;transition:background .2s;"
+                   onmouseover="this.style.background='#ede9fe'"
+                   onmouseout="this.style.background='#f5f3ff'">
+                    <span style="font-size:22px;">🧪</span>
+                    <div>
+                        <div style="font-size:13px;font-weight:500;">
+                            Collect Samples
+                        </div>
+                        <div style="font-size:11px;opacity:.7;"
+                             th:text="${pendingSamplesCount}
+                           + ' pending'">
+                            0 pending
+                        </div>
+                    </div>
+                </a>
+                <a th:href="@{/technician/results}"
+                   style="display:flex;align-items:center;
+                  gap:12px;padding:14px;
+                  background:#fef9c3;border-radius:10px;
+                  text-decoration:none;color:#92400e;
+                  transition:background .2s;"
+                   onmouseover="this.style.background='#fef08a'"
+                   onmouseout="this.style.background='#fef9c3'">
+                    <span style="font-size:22px;">📝</span>
+                    <div>
+                        <div style="font-size:13px;font-weight:500;">
+                            Enter Results
+                        </div>
+                        <div style="font-size:11px;opacity:.7;"
+                             th:text="${resultsToEnterCount}
+                           + ' to enter'">
+                            0 to enter
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+</th:block>
+</body>
+</html>

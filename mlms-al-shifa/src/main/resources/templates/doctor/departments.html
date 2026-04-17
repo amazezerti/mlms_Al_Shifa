@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Departments</title>
+    <style>
+        .dept-grid{display:grid;
+          grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+          gap:18px;margin-bottom:28px;}
+        .dept-card{background:white;border-radius:16px;
+          border:1px solid var(--border);overflow:hidden;
+          transition:box-shadow 0.2s,transform 0.2s;}
+        .dept-card:hover{
+          box-shadow:0 6px 24px rgba(0,0,0,0.09);
+          transform:translateY(-2px);}
+        .dept-card-top{padding:24px;
+          background:linear-gradient(135deg,#0f172a,#1a3a6b);
+          display:flex;align-items:center;gap:16px;}
+        .dept-icon-wrap{width:52px;height:52px;border-radius:14px;
+          background:rgba(255,255,255,0.15);
+          display:flex;align-items:center;justify-content:center;
+          font-size:24px;flex-shrink:0;}
+        .dept-name{font-size:15px;font-weight:600;color:white;}
+        .dept-sub{font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px;}
+        .dept-card-body{padding:18px 20px;}
+        .dept-stat-row{display:flex;gap:0;
+          border-top:1px solid var(--border);margin-top:14px;}
+        .dept-stat{flex:1;text-align:center;padding:12px 8px;}
+        .dept-stat:not(:last-child){border-right:1px solid var(--border);}
+        .dept-stat .val{font-size:18px;font-weight:600;color:#1d4ed8;}
+        .dept-stat .lbl{font-size:10px;color:var(--muted);margin-top:2px;}
+        .dept-desc{font-size:13px;color:var(--muted);line-height:1.6;}
+        .doctor-row{display:flex;align-items:center;gap:10px;
+          padding:10px 0;border-bottom:1px solid #f8fafc;}
+        .doctor-row:last-child{border-bottom:none;}
+        .doc-av{width:32px;height:32px;border-radius:50%;
+          background:linear-gradient(135deg,#1a3a6b,#1d4ed8);
+          display:flex;align-items:center;justify-content:center;
+          font-size:11px;font-weight:600;color:white;flex-shrink:0;
+          text-transform:uppercase;}
+        .doc-name{font-size:13px;font-weight:500;color:var(--text);}
+        .doc-spec{font-size:11px;color:var(--muted);}
+        .section-title{font-size:16px;font-weight:600;
+          color:var(--text);margin:0 0 16px;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div style="margin-bottom:24px;">
+        <h4 style="margin:0;font-size:20px;font-weight:600;">
+            Hospital Departments
+        </h4>
+        <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">
+            Browse lab departments and their medical teams
+        </p>
+    </div>
+
+    <div th:if="${#lists.isEmpty(departments)}"
+         style="text-align:center;padding:60px;color:var(--muted);">
+        <span style="font-size:52px;display:block;margin-bottom:12px;">🏥</span>
+        <p>No departments configured yet. Contact the administrator.</p>
+    </div>
+
+    <div class="dept-grid">
+        <div class="dept-card"
+             th:each="dept,s : ${departments}">
+            <div class="dept-card-top">
+                <div class="dept-icon-wrap">
+          <span th:text="${s.index % 5 == 0 ? '🧪'
+            : s.index % 5 == 1 ? '💉'
+            : s.index % 5 == 2 ? '🔬'
+            : s.index % 5 == 3 ? '🫀'
+            : '🧫'}">🧪</span>
+                </div>
+                <div>
+                    <div class="dept-name"
+                         th:text="${dept.name}">Department</div>
+                    <div class="dept-sub">
+                        Al-Shifa Hospital Lab
+                    </div>
+                </div>
+            </div>
+            <div class="dept-card-body">
+                <p class="dept-desc"
+                   th:text="${dept.description ?: 'No description provided for this department.'}">
+                    Description
+                </p>
+                <div class="dept-stat-row">
+                    <div class="dept-stat">
+                        <div class="val">—</div>
+                        <div class="lbl">Doctors</div>
+                    </div>
+                    <div class="dept-stat">
+                        <div class="val">—</div>
+                        <div class="lbl">Tests Today</div>
+                    </div>
+                    <div class="dept-stat">
+                        <div class="val pill"
+                             th:classappend="${dept.active}?'pill-green':'pill-red'"
+                             th:text="${dept.active}?'Active':'Off'">
+                            Active
+                        </div>
+                        <div class="lbl">Status</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

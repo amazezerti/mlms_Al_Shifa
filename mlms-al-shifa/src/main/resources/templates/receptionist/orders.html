@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Test Orders</title>
+  <style>
+    .page-header{display:flex;justify-content:space-between;
+      align-items:center;margin-bottom:24px;}
+    .btn-green{background:#0f7a58;color:white;border:none;
+      border-radius:10px;padding:9px 20px;font-size:13px;
+      font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;
+      display:inline-flex;align-items:center;gap:6px;
+      text-decoration:none;transition:opacity .2s;}
+    .btn-green:hover{opacity:.85;color:white;}
+    .filter-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+    .tab{padding:7px 18px;border-radius:20px;font-size:12px;
+      font-weight:500;border:1.5px solid var(--border);
+      background:white;color:var(--muted);cursor:pointer;
+      transition:all .15s;}
+    .tab.active,.tab:hover{background:#0f7a58;border-color:#0f7a58;color:white;}
+    .modal-overlay{display:none;position:fixed;inset:0;
+      background:rgba(0,0,0,0.45);z-index:2000;
+      align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal-box{background:white;border-radius:18px;padding:28px;
+      width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+    .modal-box h4{font-size:16px;font-weight:600;margin:0 0 20px;}
+    .modal-header-row{display:flex;justify-content:space-between;
+      align-items:center;margin-bottom:20px;}
+    .modal-close{background:none;border:none;font-size:22px;
+      cursor:pointer;color:var(--muted);line-height:1;padding:0;}
+    .modal-close:hover{color:var(--text);}
+    .fg{margin-bottom:14px;}
+    .fg label{display:block;font-size:12px;font-weight:500;margin-bottom:6px;}
+    .fg select,.fg input,.fg textarea{width:100%;
+      border:1.5px solid var(--border);border-radius:9px;
+      padding:9px 12px;font-size:13px;
+      font-family:'DM Sans',sans-serif;outline:none;
+      transition:border-color .2s;}
+    .fg select:focus,.fg input:focus,.fg textarea:focus{border-color:#0f7a58;}
+    .mf{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+    .btn-cancel{background:#f1f5f9;color:var(--text);border:none;
+      border-radius:9px;padding:9px 18px;font-size:13px;cursor:pointer;}
+    .test-checkbox-grid{display:grid;
+      grid-template-columns:repeat(2,1fr);gap:8px;
+      max-height:200px;overflow-y:auto;
+      border:1.5px solid var(--border);border-radius:9px;padding:12px;}
+    .test-checkbox-item{display:flex;align-items:center;
+      gap:8px;font-size:13px;padding:6px 8px;border-radius:6px;
+      cursor:pointer;transition:background .15s;}
+    .test-checkbox-item:hover{background:#f0fdf4;}
+    .test-checkbox-item input{width:16px;height:16px;
+      accent-color:#0f7a58;cursor:pointer;}
+    .dept-filter{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+    .dept-filter-btn{padding:5px 14px;border-radius:20px;
+      font-size:12px;font-weight:500;border:1.5px solid var(--border);
+      background:white;color:var(--muted);cursor:pointer;transition:all .15s;}
+    .dept-filter-btn.active,.dept-filter-btn:hover{
+      background:#0f7a58;border-color:#0f7a58;color:white;}
+    .order-row{background:white;border-radius:12px;
+      border:1px solid var(--border);padding:16px 20px;
+      margin-bottom:10px;display:flex;align-items:center;
+      gap:14px;transition:box-shadow .2s;}
+    .order-row:hover{box-shadow:0 4px 16px rgba(0,0,0,.07);}
+    .order-code{font-family:monospace;font-size:12px;
+      font-weight:600;background:#f0fdf4;color:#0f7a58;
+      padding:3px 10px;border-radius:6px;flex-shrink:0;}
+    .empty-state{text-align:center;padding:48px;color:var(--muted);}
+    .empty-state span{font-size:48px;display:block;margin-bottom:12px;}
+  </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+  <div class="page-header">
+    <div>
+      <h4 style="margin:0;font-size:20px;font-weight:600;">Test Orders</h4>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">
+        Create and track lab test requests for patients
+      </p>
+    </div>
+    <button class="btn-green" type="button"
+            onclick="openModal('orderModal')">
+      <i class="bi bi-plus-lg"></i> New Test Order
+    </button>
+  </div>
+
+  <!-- Status filter tabs -->
+  <div class="filter-tabs">
+    <button class="tab active" type="button"
+            onclick="filterOrders('all',this)">All</button>
+    <button class="tab" type="button"
+            onclick="filterOrders('DRAFT',this)">
+      🟡 Draft
+    </button>
+    <button class="tab" type="button"
+            onclick="filterOrders('CONFIRMED',this)">
+      🔵 Confirmed
+    </button>
+    <button class="tab" type="button"
+            onclick="filterOrders('IN_PROGRESS',this)">
+      🟣 In Progress
+    </button>
+    <button class="tab" type="button"
+            onclick="filterOrders('COMPLETED',this)">
+      🟢 Completed
+    </button>
+  </div>
+
+  <!-- Orders list -->
+  <div th:if="${not #lists.isEmpty(orders)}">
+    <div class="order-row"
+         th:each="o : ${orders}"
+         th:attr="data-status=${o.status}">
+      <div class="order-code" th:text="${o.orderCode}">ORD-001</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;"
+             th:text="${o.patient.fullName}">Patient</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+          <span th:text="${o.patient.patientCode}">PAT-001</span>
+          · Created
+          <span th:text="${#temporals.format(
+              o.orderedAt,'dd MMM yyyy HH:mm')}">date</span>
+          <span th:if="${o.confirmedBy != null}">
+            · Confirmed by Dr. <span th:text="${o.confirmedBy.fullName}">Doc</span>
+          </span>
+        </div>
+        <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap;">
+          <span class="pill pill-gray"
+                th:each="item : ${o.items}"
+                th:text="${item.test.testName}">Test</span>
+        </div>
+      </div>
+      <div th:switch="${o.priority}">
+        <span th:case="'URGENT'"
+              style="background:#fee2e2;color:#991b1b;
+                     padding:3px 10px;border-radius:20px;
+                     font-size:11px;font-weight:600;">
+          🔴 URGENT
+        </span>
+        <span th:case="'STAT'"
+              style="background:#fef9c3;color:#92400e;
+                     padding:3px 10px;border-radius:20px;
+                     font-size:11px;font-weight:600;">
+          🟡 STAT
+        </span>
+        <span th:case="*"
+              style="background:#f1f5f9;color:#475569;
+                     padding:3px 10px;border-radius:20px;font-size:11px;">
+          NORMAL
+        </span>
+      </div>
+      <span class="pill"
+            th:classappend="${o.status=='DRAFT'}
+              ? 'pill-amber'
+              : (${o.status=='CONFIRMED'}
+                ? 'pill-blue'
+                : (${o.status=='IN_PROGRESS'}
+                  ? 'pill-purple'
+                  : 'pill-green'))"
+            th:text="${o.status}">DRAFT</span>
+    </div>
+  </div>
+
+  <div class="empty-state" th:if="${#lists.isEmpty(orders)}">
+    <span>📋</span>
+    <p style="font-size:15px;font-weight:500;margin-bottom:6px;">
+      No test orders yet
+    </p>
+    <p style="font-size:13px;">
+      Click "New Test Order" to create a lab test request
+    </p>
+  </div>
+
+  <!-- ── New Order Modal ── -->
+  <div class="modal-overlay" id="orderModal">
+    <div class="modal-box">
+      <div class="modal-header-row">
+        <h4>🧾 Create Test Order</h4>
+        <button class="modal-close" type="button"
+                onclick="closeModal('orderModal')">×</button>
+      </div>
+      <form th:action="@{/receptionist/orders/create}" method="post">
+        <input type="hidden"
+               th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}"/>
+
+        <div class="fg">
+          <label>Patient *</label>
+          <select name="patientId" required>
+            <option value="">— Select patient —</option>
+            <option th:each="p : ${patients}"
+                    th:value="${p.id}"
+                    th:text="${p.fullName}+' ('+${p.patientCode}+')'">
+              Patient
+            </option>
+          </select>
+        </div>
+
+        <div class="fg">
+          <label>Priority</label>
+          <select name="priority">
+            <option value="NORMAL" selected>Normal</option>
+            <option value="URGENT">🔴 Urgent</option>
+            <option value="STAT">🟡 STAT</option>
+          </select>
+        </div>
+
+        <div class="fg">
+          <label>Clinical Note (optional)</label>
+          <textarea name="clinicalNote" rows="2"
+                    placeholder="Brief clinical notes for the doctor...">
+          </textarea>
+        </div>
+
+        <div class="fg">
+          <label>Select Tests *</label>
+          <div class="dept-filter" id="deptFilter">
+            <button type="button"
+                    class="dept-filter-btn active"
+                    onclick="filterTests('all',this)">All</button>
+            <button type="button"
+                    class="dept-filter-btn"
+                    th:each="d : ${departments}"
+                    th:text="${d.name}"
+                    th:attr="data-dept-id=${d.id}"
+                    onclick="filterTests(this.dataset.deptId,this)">
+              Dept
+            </button>
+          </div>
+          <div class="test-checkbox-grid" id="testGrid">
+            <label class="test-checkbox-item"
+                   th:each="t : ${testCatalog}"
+                   th:attr="data-dept=${t.department.id}">
+              <input type="checkbox" name="testIds"
+                     th:value="${t.id}"/>
+              <div>
+                <div th:text="${t.testName}">Test</div>
+                <div style="font-size:11px;color:var(--muted);"
+                     th:text="${t.price}+' XAF'">0 XAF</div>
+              </div>
+            </label>
+            <div th:if="${#lists.isEmpty(testCatalog)}"
+                 style="padding:12px;color:var(--muted);
+                        font-size:13px;grid-column:1/-1;">
+              No tests in catalog. Ask admin to add tests.
+            </div>
+          </div>
+        </div>
+
+        <div class="mf">
+          <button type="button" class="btn-cancel"
+                  onclick="closeModal('orderModal')">Cancel</button>
+          <button type="submit" class="btn-green">Create Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+<th:block layout:fragment="scripts">
+  <script>
+    function openModal(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.add('open');
+    }
+    function closeModal(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('open');
+    }
+    document.querySelectorAll('.modal-overlay').forEach(function(o) {
+        o.addEventListener('click', function(e) {
+            if (e.target === o) o.classList.remove('open');
+        });
+    });
+
+    function filterOrders(status, btn) {
+        document.querySelectorAll('.tab')
+            .forEach(function(t) { t.classList.remove('active'); });
+        btn.classList.add('active');
+        document.querySelectorAll('.order-row').forEach(function(r) {
+            r.style.display =
+                (status === 'all' || r.dataset.status === status)
+                    ? '' : 'none';
+        });
+    }
+
+    function filterTests(deptId, btn) {
+        document.querySelectorAll('.dept-filter-btn')
+            .forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        document.querySelectorAll('.test-checkbox-item')
+            .forEach(function(item) {
+                item.style.display =
+                    (deptId === 'all' || item.dataset.dept == deptId)
+                        ? '' : 'none';
+            });
+    }
+  </script>
+</th:block>
+</body>
+</html>

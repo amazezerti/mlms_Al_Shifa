@@ -1,0 +1,45 @@
+# ── Compiled output ────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# ── SENSITIVE — never push these ───────────────────────
+# Contains DB password and admin credentials
+**/application.properties
+**/application-*.properties
+**/application.yml
+**/application-*.yml
+
+# ── IDE files ───────────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+*.launch
+
+# ── OS files ────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Maven ───────────────────────────────────────────────
+.mvn/repository/
+
+# ── Logs ────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Environment files ───────────────────────────────────
+.env
+.env.*
+*.env
+
+# ── Spring Boot DevTools restart trigger ────────────────
+.reloadtrigger

@@ -1,0 +1,3 @@
+-- Admin user is seeded programmatically by DataInitializer.java
+-- This ensures BCrypt encoding is applied correctly at runtime.
+-- See: com.alshifa.mlms_al_shifa.config.DataInitializer

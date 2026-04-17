@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Patients</title>
+    <style>
+        .top-bar{display:flex;justify-content:space-between;
+          align-items:center;margin-bottom:20px;}
+        .search-row{display:flex;gap:10px;margin-bottom:20px;}
+        .search-input{flex:1;border:1.5px solid var(--border);
+          border-radius:10px;padding:9px 16px;font-size:13px;
+          font-family:'DM Sans',sans-serif;outline:none;
+          transition:border-color 0.2s;}
+        .search-input:focus{border-color:#0f7a58;}
+        .btn-green{background:#0f7a58;color:white;border:none;
+          border-radius:10px;padding:9px 18px;font-size:13px;
+          font-weight:500;cursor:pointer;display:inline-flex;
+          align-items:center;gap:6px;
+          font-family:'DM Sans',sans-serif;}
+        .btn-green:hover{opacity:.85;color:white;}
+        .avatar-p{width:34px;height:34px;border-radius:50%;
+          background:linear-gradient(135deg,#0f7a58,#34d399);
+          display:inline-flex;align-items:center;
+          justify-content:center;font-size:13px;font-weight:600;
+          color:white;margin-right:10px;text-transform:uppercase;
+          flex-shrink:0;}
+        .modal-overlay{display:none;position:fixed;inset:0;
+          background:rgba(0,0,0,0.4);z-index:2000;
+          align-items:center;justify-content:center;}
+        .modal-overlay.open{display:flex;}
+        .modal-box{background:white;border-radius:18px;
+          padding:28px;width:100%;max-width:440px;}
+        .modal-box h4{font-size:15px;font-weight:600;
+          margin:0 0 18px;}
+        .fg{margin-bottom:14px;}
+        .fg label{display:block;font-size:12px;font-weight:500;
+          margin-bottom:5px;}
+        .fg select,.fg textarea,.fg input{width:100%;
+          border:1.5px solid var(--border);border-radius:9px;
+          padding:8px 13px;font-size:13px;
+          font-family:'DM Sans',sans-serif;outline:none;}
+        .fg select:focus,.fg input:focus{border-color:#0f7a58;}
+        .mf{display:flex;gap:10px;justify-content:flex-end;
+          margin-top:18px;}
+        .btn-cancel{background:#f1f5f9;color:var(--text);
+          border:none;border-radius:9px;padding:9px 18px;
+          font-size:13px;cursor:pointer;}
+        .fg-2col{display:grid;grid-template-columns:1fr 1fr;
+          gap:12px;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="top-bar">
+        <div>
+            <h4 style="margin:0;font-size:20px;font-weight:600;">
+                Patients
+            </h4>
+            <p style="margin:4px 0 0;font-size:13px;
+                color:var(--muted);">
+                Register, search and manage patients
+            </p>
+        </div>
+        <button class="btn-green"
+                type="button"
+                onclick="openModal('registerModal')">
+            <i class="bi bi-plus-lg"></i> Register Patient
+        </button>
+    </div>
+
+    <!-- Search -->
+    <form th:action="@{/receptionist/patients}" method="get">
+        <div class="search-row">
+            <input class="search-input" type="text" name="q"
+                   th:value="${q}"
+                   placeholder="Search by name or code..."/>
+            <button type="submit" class="btn-green">
+                <i class="bi bi-search"></i> Search
+            </button>
+        </div>
+    </form>
+
+    <div class="content-card">
+        <div style="overflow:auto;">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Code</th>
+                    <th>Gender</th>
+                    <th>Blood</th>
+                    <th>Phone</th>
+                    <th>Registered</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="p : ${patients}">
+                    <td>
+                        <div style="display:flex;align-items:center;">
+                            <div class="avatar-p"
+                                 th:text="${p.fullName.length() > 1
+                                   ? p.fullName.substring(0,2)
+                                   : p.fullName}">
+                                AB
+                            </div>
+                            <span th:text="${p.fullName}">Name</span>
+                        </div>
+                    </td>
+                    <td>
+              <span class="pill pill-gray"
+                    th:text="${p.patientCode}">
+                PAT-00001
+              </span>
+                    </td>
+                    <td th:text="${p.gender ?: '—'}">—</td>
+                    <td>
+              <span class="pill pill-red"
+                    th:if="${p.bloodGroup != null
+                      and !p.bloodGroup.isEmpty()}"
+                    th:text="${p.bloodGroup}">A+</span>
+                        <span th:if="${p.bloodGroup == null
+                or p.bloodGroup.isEmpty()}">—</span>
+                    </td>
+                    <td th:text="${p.phone ?: '—'}">—</td>
+                    <td>
+                        <!-- FIXED: null-safe date format -->
+                        <span th:if="${p.registeredAt != null}"
+                              th:text="${#temporals.format(
+                      p.registeredAt,
+                      'dd MMM yyyy')}">
+                date
+              </span>
+                        <span th:if="${p.registeredAt == null}">
+                —
+              </span>
+                    </td>
+                    <td>
+                        <button class="btn-xs btn-primary-xs open-assign-btn"
+                                style="background:#0f7a58;"
+                                th:data-patient-id="${p.id}"
+                                th:data-patient-name="${p.fullName}">
+                            <i class="bi bi-person-check"></i> Assign
+                        </button>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(patients)}">
+                    <td colspan="7"
+                        style="text-align:center;padding:32px;
+                       color:var(--muted);">
+                        No patients found.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal-overlay" id="registerModal">
+        <div class="modal-box">
+            <h4>🧑‍⚕️ Register New Patient</h4>
+            <form th:action="@{/receptionist/patients/register}"
+                  method="post">
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}"/>
+                <div class="fg">
+                    <label>Full Name *</label>
+                    <input type="text" name="fullName" required
+                           placeholder="Patient full name"/>
+                </div>
+                <div class="fg-2col">
+                    <div class="fg">
+                        <label>Date of Birth</label>
+                        <input type="date" name="dob"/>
+                    </div>
+                    <div class="fg">
+                        <label>Gender *</label>
+                        <select name="gender" required>
+                            <option value="">— Select —</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="fg-2col">
+                    <div class="fg">
+                        <label>Phone *</label>
+                        <input type="tel" name="phone" required
+                               placeholder="+235 00 00 00 00"/>
+                    </div>
+                    <div class="fg">
+                        <label>Blood Group</label>
+                        <select name="bloodGroup">
+                            <option value="">— Unknown —</option>
+                            <option>A+</option><option>A-</option>
+                            <option>B+</option><option>B-</option>
+                            <option>AB+</option><option>AB-</option>
+                            <option>O+</option><option>O-</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="fg">
+                    <label>Address</label>
+                    <input type="text" name="address"
+                           placeholder="Patient address"/>
+                </div>
+                <div class="mf">
+                    <button type="button" class="btn-cancel"
+                            onclick="closeModal('registerModal')">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-green">
+                        Register
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assign Modal -->
+    <div class="modal-overlay" id="assignModal">
+        <div class="modal-box">
+            <h4>🏥 Assign to Department</h4>
+            <p style="font-size:13px;color:var(--muted);
+                margin-bottom:16px;">
+                Patient: <strong id="assignPatientName">—</strong>
+                <br/>
+                The system assigns the least-loaded doctor
+                in the department automatically.
+            </p>
+            <form id="assignForm" method="post">
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}"/>
+                <div class="fg">
+                    <label>Department *</label>
+                    <select name="departmentId" required>
+                        <option value="">— Select department —</option>
+                        <option th:each="d : ${departments}"
+                                th:value="${d.id}"
+                                th:text="${d.name}">Dept</option>
+                    </select>
+                </div>
+                <div class="fg">
+                    <label>Notes (optional)</label>
+                    <textarea name="notes" rows="2"
+                              placeholder="Additional notes...">
+          </textarea>
+                </div>
+                <div class="mf">
+                    <button type="button" class="btn-cancel"
+                            onclick="closeModal('assignModal')">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-green">
+                        Assign Patient
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+<th:block layout:fragment="scripts">
+    <script>
+        function openModal(id) {
+            document.getElementById(id).classList.add('open');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('open');
+        }
+        document.querySelectorAll('.modal-overlay').forEach(o => {
+            o.addEventListener('click', e => {
+                if (e.target === o) o.classList.remove('open');
+            });
+        });
+        // Event delegation — safe for names with apostrophes
+        // (inline th:onclick breaks when names contain ' or ")
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('.open-assign-btn');
+            if (!btn) return;
+            var patientId   = btn.dataset.patientId;
+            var patientName = btn.dataset.patientName;
+            document.getElementById('assignPatientName')
+                .textContent = patientName;
+            document.getElementById('assignForm').action =
+                '/receptionist/patients/' + patientId + '/assign';
+            openModal('assignModal');
+        });
+    </script>
+</th:block>
+</body>
+</html>

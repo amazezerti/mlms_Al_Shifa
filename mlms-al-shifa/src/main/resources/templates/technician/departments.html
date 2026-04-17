@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Lab Departments</title>
+    <style>
+        .page-header{margin-bottom:24px;}
+        .page-header h4{margin:0;font-size:20px;font-weight:600;}
+        .page-header p{margin:4px 0 0;font-size:13px;color:var(--muted);}
+        .dept-grid{display:grid;
+          grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+          gap:18px;}
+        .dept-card{background:white;border-radius:16px;
+          border:1px solid var(--border);overflow:hidden;
+          transition:box-shadow 0.2s,transform 0.2s;}
+        .dept-card:hover{
+          box-shadow:0 6px 24px rgba(0,0,0,0.09);
+          transform:translateY(-2px);}
+        .dept-top{padding:24px;
+          background:linear-gradient(135deg,#1e1b4b,#312e6e);
+          display:flex;align-items:center;gap:14px;}
+        .dept-icon{width:50px;height:50px;border-radius:14px;
+          background:rgba(255,255,255,0.12);
+          display:flex;align-items:center;justify-content:center;
+          font-size:22px;flex-shrink:0;}
+        .dept-name{font-size:15px;font-weight:600;color:white;}
+        .dept-sub{font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px;}
+        .dept-body{padding:18px 20px;}
+        .dept-desc{font-size:13px;color:var(--muted);
+          line-height:1.6;margin-bottom:14px;}
+        .dept-footer{display:flex;align-items:center;
+          justify-content:space-between;padding-top:12px;
+          border-top:1px solid var(--border);}
+        .dept-stat{text-align:center;}
+        .dept-stat .val{font-size:18px;font-weight:600;color:#6d28d9;}
+        .dept-stat .lbl{font-size:10px;color:var(--muted);margin-top:1px;}
+        .my-badge{background:#ede9fe;color:#6d28d9;font-size:11px;
+          font-weight:600;padding:3px 10px;border-radius:20px;
+          border:1px solid #ddd6fe;}
+        .empty-state{text-align:center;padding:60px;color:var(--muted);}
+        .empty-state span{font-size:52px;display:block;margin-bottom:12px;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="page-header">
+        <h4>Lab Departments</h4>
+        <p>View all active laboratory departments at Al-Shifa Hospital</p>
+    </div>
+
+    <div class="dept-grid"
+         th:if="${not #lists.isEmpty(departments)}">
+        <div class="dept-card"
+             th:each="dept,s : ${departments}">
+            <div class="dept-top">
+                <div class="dept-icon">
+          <span th:text="${s.index % 5 == 0 ? '🧪'
+            : s.index % 5 == 1 ? '💉'
+            : s.index % 5 == 2 ? '🔬'
+            : s.index % 5 == 3 ? '🧫'
+            : '🫀'}">🧪</span>
+                </div>
+                <div>
+                    <div class="dept-name"
+                         th:text="${dept.name}">Department</div>
+                    <div class="dept-sub">Al-Shifa Hospital Lab</div>
+                </div>
+            </div>
+            <div class="dept-body">
+                <p class="dept-desc"
+                   th:text="${dept.description
+             ?: 'Laboratory department for specialized testing and analysis.'}">
+                    Description
+                </p>
+                <div class="dept-footer">
+                    <div class="dept-stat">
+                        <div class="val">—</div>
+                        <div class="lbl">Tests Today</div>
+                    </div>
+                    <div class="dept-stat">
+                        <div class="val">—</div>
+                        <div class="lbl">Pending</div>
+                    </div>
+                    <span class="pill"
+                          th:classappend="${dept.active}?'pill-green':'pill-red'"
+                          th:text="${dept.active}?'● Active':'● Inactive'">
+          </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="empty-state"
+         th:if="${#lists.isEmpty(departments)}">
+        <span>🏥</span>
+        <p style="font-size:15px;font-weight:500;margin-bottom:6px;">
+            No departments available
+        </p>
+        <p style="font-size:13px;">
+            Contact the administrator to add lab departments.
+        </p>
+    </div>
+
+</div>
+</body>
+</html>

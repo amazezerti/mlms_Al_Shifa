@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Payments</title>
+    <style>
+        .stats-strip{display:grid;grid-template-columns:repeat(4,1fr);
+          gap:12px;margin-bottom:24px;}
+        .strip-card{background:white;border-radius:12px;
+          border:1px solid var(--border);padding:16px 18px;
+          display:flex;align-items:center;gap:12px;}
+        .si{width:36px;height:36px;border-radius:9px;
+          display:flex;align-items:center;justify-content:center;font-size:15px;}
+        .si-green{background:#dcfce7;color:#15803d;}
+        .si-blue{background:#dbeafe;color:#1d4ed8;}
+        .si-amber{background:#fef9c3;color:#92400e;}
+        .si-purple{background:#ede9fe;color:#6d28d9;}
+        .payment-card{background:white;border-radius:12px;
+          border:1px solid var(--border);padding:16px 20px;
+          margin-bottom:10px;display:flex;align-items:center;
+          gap:14px;transition:box-shadow 0.2s;}
+        .payment-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.07);}
+        .method-icon{width:40px;height:40px;border-radius:10px;
+          display:flex;align-items:center;justify-content:center;
+          font-size:18px;flex-shrink:0;}
+        .method-cash{background:#dcfce7;}
+        .method-card{background:#dbeafe;}
+        .method-mobile{background:#ede9fe;}
+        .method-insurance{background:#fef9c3;}
+        .payment-info{flex:1;}
+        .payment-inv{font-size:13px;font-weight:600;color:var(--text);}
+        .payment-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+        .payment-amount{font-size:16px;font-weight:600;color:#0f7a58;
+          flex-shrink:0;}
+        .page-header{display:flex;justify-content:space-between;
+          align-items:center;margin-bottom:24px;}
+        .btn-green{background:#0f7a58;color:white;border:none;
+          border-radius:10px;padding:9px 18px;font-size:13px;
+          font-weight:500;cursor:pointer;display:inline-flex;
+          align-items:center;gap:6px;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="page-header">
+        <div>
+            <h4 style="margin:0;font-size:20px;font-weight:600;">
+                Payment Records
+            </h4>
+            <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">
+                Track and record all patient payments
+            </p>
+        </div>
+        <button class="btn-green">
+            <i class="bi bi-plus-lg"></i> Record Payment
+        </button>
+    </div>
+
+    <div class="stats-strip">
+        <div class="strip-card">
+            <div class="si si-green"><i class="bi bi-cash-stack"></i></div>
+            <div>
+                <div style="font-size:20px;font-weight:600;"
+                     th:text="${payments.size()} + ' Total'">0</div>
+                <div style="font-size:12px;color:var(--muted);">
+                    All Payments
+                </div>
+            </div>
+        </div>
+        <div class="strip-card">
+            <div class="si si-blue"><i class="bi bi-credit-card"></i></div>
+            <div>
+                <div style="font-size:20px;font-weight:600;"
+                     th:text="${payments.size()}">0</div>
+                <div style="font-size:12px;color:var(--muted);">
+                    Transactions
+                </div>
+            </div>
+        </div>
+        <div class="strip-card">
+            <div class="si si-purple"><i class="bi bi-phone"></i></div>
+            <div>
+                <div style="font-size:20px;font-weight:600;"
+                     th:text="${payments.?[paymentMethod == 'MOBILE'].size()}">0</div>
+                <div style="font-size:12px;color:var(--muted);">
+                    Mobile Money
+                </div>
+            </div>
+        </div>
+        <div class="strip-card">
+            <div class="si si-amber"><i class="bi bi-shield-check"></i></div>
+            <div>
+                <div style="font-size:20px;font-weight:600;"
+                     th:text="${payments.?[paymentMethod == 'INSURANCE'].size()}">0</div>
+                <div style="font-size:12px;color:var(--muted);">
+                    Insurance Claims
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div style="display:flex;gap:10px;margin-bottom:18px;">
+        <input type="text" id="paySearch"
+               placeholder="Search by patient name, code or invoice #..."
+               oninput="filterPayments(this.value)"
+               style="flex:1;border:1.5px solid var(--border);
+                      border-radius:10px;padding:9px 16px;
+                      font-size:13px;outline:none;
+                      font-family:'DM Sans',sans-serif;
+                      transition:border-color .2s;"
+               onfocus="this.style.borderColor='#0f7a58'"
+               onblur="this.style.borderColor='var(--border)'"/>
+    </div>
+
+    <!-- Payment list -->
+    <div class="content-card">
+        <div class="cc-header">
+            <h5>All Payments</h5>
+            <span style="font-size:12px;color:var(--muted);"
+                  th:text="${#temporals.format(#temporals.createNow(),'dd MMM yyyy')}">
+                Today
+            </span>
+        </div>
+        <div class="cc-body" style="padding:0 22px;">
+
+            <div id="paymentsList"
+                 th:if="${not #lists.isEmpty(payments)}">
+                <div class="payment-card"
+                     th:each="p : ${payments}">
+                    <div class="method-icon"
+                         th:classappend="${p.paymentMethod == 'CASH' ? 'method-cash' :
+                                          p.paymentMethod == 'MOBILE' ? 'method-mobile' :
+                                          p.paymentMethod == 'INSURANCE' ? 'method-insurance' :
+                                          'method-card'}">
+                        <span th:text="${p.paymentMethod == 'CASH' ? '💵' :
+                                         p.paymentMethod == 'MOBILE' ? '📱' :
+                                         p.paymentMethod == 'INSURANCE' ? '🛡️' : '💳'}">💵</span>
+                    </div>
+                    <div class="payment-info">
+                        <div class="payment-inv">
+                            <span th:text="${p.invoice.invoiceNumber}">INV</span>
+                            —
+                            <span th:text="${p.invoice.patient.fullName}">Patient</span>
+                        </div>
+                        <div class="payment-meta">
+                            <span th:text="${p.paymentMethod}">Method</span>
+                            ·
+                            <span th:text="${p.invoice.patient.patientCode}">CODE</span>
+                            <span th:if="${p.paidAt != null}">
+                                ·
+                                <span th:text="${#temporals.format(p.paidAt,'dd MMM yyyy HH:mm')}">Date</span>
+                            </span>
+                            <span th:if="${p.receivedBy != null}">
+                                · Received by:
+                                <span th:text="${p.receivedBy.fullName}">Staff</span>
+                            </span>
+                            <span th:if="${p.referenceNumber != null}">
+                                · Ref:
+                                <span th:text="${p.referenceNumber}">REF</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="payment-amount"
+                         th:text="${p.amountPaid} + ' XAF'">0 XAF</div>
+                    <span th:if="${p.amountPaid >= p.invoice.netAmount}"
+                          class="pill pill-green">Full Payment</span>
+                    <span th:if="${p.amountPaid < p.invoice.netAmount}"
+                          class="pill pill-amber">Partial</span>
+                </div>
+            </div>
+
+            <div th:if="${#lists.isEmpty(payments)}"
+                 style="text-align:center;padding:40px;color:var(--muted);">
+                <span style="font-size:40px;display:block;margin-bottom:10px;">💳</span>
+                <p style="font-size:14px;font-weight:500;">No payments recorded yet</p>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+<th:block layout:fragment="scripts">
+  <script>
+    function filterPayments(q) {
+      document.querySelectorAll('.payment-card').forEach(function(c) {
+        c.style.display =
+          c.textContent.toLowerCase()
+            .includes(q.toLowerCase()) ? '' : 'none';
+      });
+    }
+  </script>
+</th:block>
+</body>
+</html>

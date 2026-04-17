@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Settings</title>
+    <style>
+        .settings-layout{display:grid;
+          grid-template-columns:220px 1fr;gap:24px;align-items:start;}
+        .settings-nav{background:white;border-radius:14px;
+          border:1px solid var(--border);overflow:hidden;
+          position:sticky;top:80px;}
+        .sn-item{display:flex;align-items:center;gap:10px;
+          padding:12px 18px;font-size:13px;font-weight:500;
+          color:var(--muted);cursor:pointer;
+          border-left:3px solid transparent;transition:all .15s;
+          text-decoration:none;background:none;border-top:none;
+          border-right:none;border-bottom:none;
+          width:100%;text-align:left;font-family:'DM Sans',sans-serif;}
+        .sn-item:hover,.sn-item.active{background:#f8fafc;
+          color:#0a5c7f;border-left-color:#0a5c7f;}
+        .sn-item i{font-size:15px;width:16px;}
+        .sp{display:none;}.sp.active{display:block;}
+        .ss{background:white;border-radius:14px;
+          border:1px solid var(--border);margin-bottom:18px;
+          overflow:hidden;}
+        .ss-header{padding:16px 22px;border-bottom:1px solid #f0f6fa;}
+        .ss-header h5{margin:0;font-size:14px;font-weight:600;}
+        .ss-header p{margin:2px 0 0;font-size:12px;color:var(--muted);}
+        .ss-body{padding:22px;}
+        .sr{display:flex;justify-content:space-between;
+          align-items:center;padding:13px 0;
+          border-bottom:1px solid #f8fafc;}
+        .sr:last-child{border-bottom:none;}
+        .sr-label .title{font-size:13px;font-weight:500;}
+        .sr-label .desc{font-size:12px;color:var(--muted);margin-top:2px;}
+        .toggle{position:relative;width:42px;height:23px;flex-shrink:0;}
+        .toggle input{opacity:0;width:0;height:0;}
+        .tslider{position:absolute;inset:0;background:#daeaf3;
+          border-radius:23px;cursor:pointer;transition:.2s;}
+        .tslider::before{content:'';position:absolute;
+          width:17px;height:17px;left:3px;bottom:3px;
+          background:white;border-radius:50%;transition:.2s;
+          box-shadow:0 1px 3px rgba(0,0,0,.2);}
+        .toggle input:checked+.tslider{background:#0a5c7f;}
+        .toggle input:checked+.tslider::before{
+          transform:translateX(19px);}
+        .fc{border:1.5px solid var(--border);border-radius:8px;
+          padding:7px 12px;font-size:13px;
+          font-family:'DM Sans',sans-serif;color:var(--text);
+          outline:none;min-width:160px;transition:border-color .2s;}
+        .fc:focus{border-color:#0a5c7f;}
+        .btn-save{background:#0a5c7f;color:white;border:none;
+          border-radius:9px;padding:9px 20px;font-size:13px;
+          font-weight:500;cursor:pointer;
+          font-family:'DM Sans',sans-serif;transition:opacity .2s;}
+        .btn-save:hover{opacity:.85;}
+        .btn-danger{background:#fee2e2;color:#991b1b;
+          border:1.5px solid #fecaca;border-radius:9px;
+          padding:8px 18px;font-size:13px;cursor:pointer;}
+        .toast-c{position:fixed;bottom:24px;right:24px;z-index:9999;}
+        .toast{background:#0a5c7f;color:white;padding:11px 18px;
+          border-radius:10px;font-size:13px;margin-top:8px;
+          display:flex;align-items:center;gap:8px;
+          box-shadow:0 4px 16px rgba(0,0,0,.15);
+          animation:sIn .3s ease;}
+        @keyframes sIn{
+          from{transform:translateX(100%);opacity:0}
+          to{transform:translateX(0);opacity:1}}
+        .pwd-strength{height:4px;border-radius:4px;
+          background:#f0f6fa;overflow:hidden;margin-top:8px;}
+        .pwd-bar{height:100%;border-radius:4px;
+          transition:all .3s;width:0;}
+        .swatches{display:flex;gap:8px;}
+        .swatch{width:26px;height:26px;border-radius:50%;
+          cursor:pointer;border:3px solid transparent;
+          transition:border-color .2s;}
+        .swatch.sel{border-color:#0d1b2a;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <h4 style="font-size:20px;font-weight:600;margin-bottom:24px;">
+        ⚙️ System Settings
+    </h4>
+
+    <div class="settings-layout">
+        <nav class="settings-nav">
+            <button class="sn-item active"
+                    onclick="showPanel('profile',this)">
+                <i class="bi bi-person-circle"></i> My Profile
+            </button>
+            <button class="sn-item"
+                    onclick="showPanel('security',this)">
+                <i class="bi bi-shield-lock"></i> Security
+            </button>
+            <button class="sn-item"
+                    onclick="showPanel('appearance',this)">
+                <i class="bi bi-palette"></i> Appearance
+            </button>
+            <button class="sn-item"
+                    onclick="showPanel('notifications',this)">
+                <i class="bi bi-bell"></i> Notifications
+            </button>
+            <button class="sn-item"
+                    onclick="showPanel('system',this)">
+                <i class="bi bi-sliders"></i> System Config
+            </button>
+            <button class="sn-item"
+                    onclick="showPanel('sessions',this)">
+                <i class="bi bi-phone"></i> Sessions
+            </button>
+        </nav>
+
+        <div>
+
+            <!-- Profile -->
+            <div class="sp active" id="sp-profile">
+                <div class="ss">
+                    <div class="ss-header">
+                        <h5>Profile Information</h5>
+                        <p>Update your administrator account details</p>
+                    </div>
+                    <div class="ss-body">
+                        <div style="display:grid;grid-template-columns:
+                        1fr 1fr;gap:14px;margin-bottom:16px;">
+                            <div>
+                                <label style="font-size:12px;font-weight:500;
+                               display:block;margin-bottom:5px;">
+                                    Full Name
+                                </label>
+                                <input class="fc" style="width:100%;"
+                                       type="text" id="prf-name"
+                                       placeholder="Administrator"/>
+                            </div>
+                            <div>
+                                <label style="font-size:12px;font-weight:500;
+                               display:block;margin-bottom:5px;">
+                                    Email
+                                </label>
+                                <input class="fc" style="width:100%;"
+                                       type="email" id="prf-email"
+                                       placeholder="admin@alshifa.td"/>
+                            </div>
+                            <div>
+                                <label style="font-size:12px;font-weight:500;
+                               display:block;margin-bottom:5px;">
+                                    Phone
+                                </label>
+                                <input class="fc" style="width:100%;"
+                                       type="tel" id="prf-phone"
+                                       placeholder="+235 00 00 00 00"/>
+                            </div>
+                        </div>
+                        <button class="btn-save"
+                                onclick="saveProfile()">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security -->
+            <div class="sp" id="sp-security">
+                <div class="ss">
+                    <div class="ss-header">
+                        <h5>Change Password</h5>
+                        <p>Keep your admin account secure</p>
+                    </div>
+                    <div class="ss-body">
+                        <div style="max-width:380px;display:flex;
+                        flex-direction:column;gap:13px;">
+                            <div>
+                                <label style="font-size:12px;font-weight:500;
+                               display:block;margin-bottom:5px;">
+                                    Current Password
+                                </label>
+                                <input class="fc" style="width:100%;"
+                                       type="password" id="cur-pwd"/>
+                            </div>
+                            <div>
+                                <label style="font-size:12px;font-weight:500;
+                               display:block;margin-bottom:5px;">
+                                    New Password
+                                </label>
+                                <input class="fc" style="width:100%;"
+                                       type="password" id="new-pwd"
+                                       oninput="checkPwdStrength(
+                         this.value,'pwd-bar','pwd-lbl')"/>
+                                <div class="pwd-strength">
+                                    <div class="pwd-bar" id="pwd-bar"></div>
+                                </div>
+                                <span id="pwd-lbl"
+                                      style="font-size:11px;
+                             color:var(--muted);"></span>
+                            </div>
+                            <div>
+                                <label style="font-size:12px;font-weight:500;
+                               display:block;margin-bottom:5px;">
+                                    Confirm New Password
+                                </label>
+                                <input class="fc" style="width:100%;"
+                                       type="password" id="cnf-pwd"/>
+                            </div>
+                        </div>
+                        <br/>
+                        <button class="btn-save"
+                                onclick="changePassword()">
+                            Update Password
+                        </button>
+                    </div>
+                </div>
+                <div class="ss">
+                    <div class="ss-header">
+                        <h5>Session Settings</h5>
+                        <p>Control session and access behaviour</p>
+                    </div>
+                    <div class="ss-body">
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">Session timeout</div>
+                                <div class="desc">
+                                    Auto sign-out after inactivity
+                                </div>
+                            </div>
+                            <select class="fc" id="session-timeout"
+                                    onchange="saveSetting(
+                        'sessionTimeout',this.value)">
+                                <option value="15">15 minutes</option>
+                                <option value="30" selected>30 minutes</option>
+                                <option value="60">1 hour</option>
+                                <option value="240">4 hours</option>
+                            </select>
+                        </div>
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">
+                                    Single session per account
+                                </div>
+                                <div class="desc">
+                                    Second login invalidates first
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="single-session"
+                                       checked
+                                       onchange="saveSetting(
+                         'singleSession',
+                         this.checked)"/>
+                                <span class="tslider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Appearance -->
+            <div class="sp" id="sp-appearance">
+                <div class="ss">
+                    <div class="ss-header">
+                        <h5>Theme & Appearance</h5>
+                        <p>Customize the interface</p>
+                    </div>
+                    <div class="ss-body">
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">Dark mode</div>
+                                <div class="desc">
+                                    Switch to a darker interface
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="dark-mode"
+                                       onchange="toggleDarkMode(
+                         this.checked)"/>
+                                <span class="tslider"></span>
+                            </label>
+                        </div>
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">Accent colour</div>
+                                <div class="desc">
+                                    System highlight colour
+                                </div>
+                            </div>
+                            <div class="swatches">
+                                <div class="swatch sel"
+                                     style="background:#0a5c7f;"
+                                     onclick="setAccent('#0a5c7f',this)">
+                                </div>
+                                <div class="swatch"
+                                     style="background:#02c39a;"
+                                     onclick="setAccent('#02c39a',this)">
+                                </div>
+                                <div class="swatch"
+                                     style="background:#6d28d9;"
+                                     onclick="setAccent('#6d28d9',this)">
+                                </div>
+                                <div class="swatch"
+                                     style="background:#dc2626;"
+                                     onclick="setAccent('#dc2626',this)">
+                                </div>
+                                <div class="swatch"
+                                     style="background:#d97706;"
+                                     onclick="setAccent('#d97706',this)">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">Font size</div>
+                                <div class="desc">Interface text size</div>
+                            </div>
+                            <select class="fc" id="font-size"
+                                    onchange="setFontSize(this.value)">
+                                <option value="13">Small</option>
+                                <option value="14" selected>Medium</option>
+                                <option value="16">Large</option>
+                            </select>
+                        </div>
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">Collapsed sidebar</div>
+                                <div class="desc">
+                                    Start with sidebar hidden
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox"
+                                       id="sidebar-collapsed"
+                                       onchange="setSidebarPref(
+                         this.checked)"/>
+                                <span class="tslider"></span>
+                            </label>
+                        </div>
+                        <br/>
+                        <button class="btn-save"
+                                onclick="toast(
+                      'Appearance preferences saved')">
+                            Save Preferences
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="sp" id="sp-notifications">
+                <div class="ss">
+                    <div class="ss-header">
+                        <h5>Notification Preferences</h5>
+                        <p>Choose which events trigger alerts</p>
+                    </div>
+                    <div class="ss-body">
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">New user created</div>
+                                <div class="desc">
+                                    Alert when account is added
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" checked
+                                       onchange="saveSetting(
+                         'notifyNewUser',
+                         this.checked)"/>
+                                <span class="tslider"></span>
+                            </label>
+                        </div>
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">Account deactivated</div>
+                                <div class="desc">
+                                    Alert when an account is disabled
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" checked
+                                       onchange="saveSetting(
+                         'notifyDeactivate',
+                         this.checked)"/>
+                                <span class="tslider"></span>
+                            </label>
+                        </div>
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">Low inventory alert</div>
+                                <div class="desc">
+                                    Stock below minimum threshold
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" checked
+                                       onchange="saveSetting(
+                         'notifyInventory',
+                         this.checked)"/>
+                                <span class="tslider"></span>
+                            </label>
+                        </div>
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">
+                                    Failed login attempts
+                                </div>
+                                <div class="desc">
+                                    Repeated failed logins
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" checked
+                                       onchange="saveSetting(
+                         'notifyFailedLogin',
+                         this.checked)"/>
+                                <span class="tslider"></span>
+                            </label>
+                        </div>
+                        <br/>
+                        <button class="btn-save"
+                                onclick="toast(
+                      'Notification preferences saved')">
+                            Save Preferences
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Config -->
+            <div class="sp" id="sp-system">
+                <div class="ss">
+                    <div class="ss-header">
+                        <h5>System Configuration</h5>
+                        <p>Hospital-wide settings</p>
+                    </div>
+                    <div class="ss-body">
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">Hospital name</div>
+                                <div class="desc">
+                                    Shown on all printed reports
+                                </div>
+                            </div>
+                            <input class="fc" type="text"
+                                   id="hospital-name"
+                                   value="Al-Shifa Hospital"/>
+                        </div>
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">System language</div>
+                                <div class="desc">Interface language</div>
+                            </div>
+                            <select class="fc" id="sys-lang"
+                                    onchange="saveSetting(
+                        'language',this.value)">
+                                <option value="en" selected>English</option>
+                                <option value="fr">Français</option>
+                                <option value="ar">العربية</option>
+                            </select>
+                        </div>
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">Currency</div>
+                                <div class="desc">Billing currency</div>
+                            </div>
+                            <select class="fc" id="currency"
+                                    onchange="saveSetting(
+                        'currency',this.value)">
+                                <option value="XAF" selected>
+                                    XAF (CFA Franc)
+                                </option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                            </select>
+                        </div>
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">Maintenance mode</div>
+                                <div class="desc">
+                                    Lock system for non-admin users
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="maintenance"
+                                       onchange="saveSetting(
+                         'maintenance',this.checked)"/>
+                                <span class="tslider"></span>
+                            </label>
+                        </div>
+                        <br/>
+                        <button class="btn-save"
+                                onclick="saveSystemConfig()">
+                            Save Configuration
+                        </button>
+                    </div>
+                </div>
+                <div class="ss">
+                    <div class="ss-header">
+                        <h5 style="color:#dc2626;">⚠️ Danger Zone</h5>
+                        <p>Irreversible — proceed with caution</p>
+                    </div>
+                    <div class="ss-body">
+                        <div class="sr">
+                            <div class="sr-label">
+                                <div class="title">Clear audit logs</div>
+                                <div class="desc">
+                                    Permanently delete activity history
+                                </div>
+                            </div>
+                            <button class="btn-danger"
+                                    onclick="dangerAction(
+                        'Clear all audit logs?',
+                        'clearLogs')">
+                                Clear Logs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sessions -->
+            <div class="sp" id="sp-sessions">
+                <div class="ss">
+                    <div class="ss-header">
+                        <h5>Active Sessions</h5>
+                        <p>Devices currently signed in</p>
+                    </div>
+                    <div class="ss-body">
+                        <div style="display:flex;justify-content:
+                        space-between;align-items:center;
+                        padding:14px 0;
+                        border-bottom:1px solid #f8fafc;">
+                            <div>
+                                <div style="font-size:13px;font-weight:500;">
+                                    💻 Current session
+                                    <span class="pill pill-green"
+                                          style="margin-left:6px;">
+                    Active
+                  </span>
+                                </div>
+                                <div style="font-size:12px;
+                            color:var(--muted);margin-top:2px;">
+                                    Windows · Browser · localhost:8080
+                                </div>
+                            </div>
+                            <span style="font-size:12px;color:var(--muted);">
+                Now
+              </span>
+                        </div>
+                        <br/>
+                        <form th:action="@{/logout}" method="post"
+                              style="display:inline;">
+                            <input type="hidden"
+                                   th:name="${_csrf.parameterName}"
+                                   th:value="${_csrf.token}"/>
+                            <button type="submit" class="btn-danger">
+                                Sign Out All Sessions
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="toast-c" id="toastContainer"></div>
+
+</div>
+<th:block layout:fragment="scripts">
+    <script>
+        // ── Panel switching ───────────────────────────────────────────
+        function showPanel(name, btn) {
+            document.querySelectorAll('.sp')
+                .forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.sn-item')
+                .forEach(b => b.classList.remove('active'));
+            document.getElementById('sp-' + name)
+                .classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // ── Toast ─────────────────────────────────────────────────────
+        function toast(msg, isError) {
+            const c = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = 'toast';
+            if (isError) t.style.background = '#dc2626';
+            t.innerHTML = (isError ? '✗ ' : '✓ ') + msg;
+            c.appendChild(t);
+            setTimeout(() => {
+                t.style.transition = 'opacity 0.4s';
+                t.style.opacity = '0';
+                setTimeout(() => t.remove(), 400);
+            }, 3500);
+        }
+
+        // ── Save setting to localStorage ─────────────────────────────
+        function saveSetting(key, value) {
+            localStorage.setItem('mlms_' + key,
+                JSON.stringify(value));
+            toast('Setting saved');
+        }
+
+        // ── Profile save ──────────────────────────────────────────────
+        function saveProfile() {
+            const name  = document.getElementById('prf-name').value;
+            const email = document.getElementById('prf-email').value;
+            const phone = document.getElementById('prf-phone').value;
+            if (!name.trim()) {
+                toast('Full name is required', true);
+                return;
+            }
+            localStorage.setItem('mlms_profile',
+                JSON.stringify({ name, email, phone }));
+            toast('Profile updated successfully');
+        }
+
+        // ── Password strength ──────────────────────────────────────────
+        function checkPwdStrength(val, barId, lblId) {
+            let s = 0;
+            if (val.length >= 8) s++;
+            if (/[A-Z]/.test(val)) s++;
+            if (/[0-9]/.test(val)) s++;
+            if (/[^A-Za-z0-9]/.test(val)) s++;
+            const colors = [
+                '#ef4444', '#f59e0b', '#1282a2', '#22c55e'
+            ];
+            const labels = ['Weak', 'Fair', 'Good', 'Strong'];
+            const bar = document.getElementById(barId);
+            const lbl = document.getElementById(lblId);
+            bar.style.width  = (s * 25) + '%';
+            bar.style.background = colors[s - 1] || '#daeaf3';
+            lbl.textContent  = s > 0 ? labels[s - 1] : '';
+        }
+
+        // ── Password change ────────────────────────────────────────────
+        function changePassword() {
+            const cur = document.getElementById('cur-pwd').value;
+            const nw  = document.getElementById('new-pwd').value;
+            const cnf = document.getElementById('cnf-pwd').value;
+            if (!cur || !nw || !cnf) {
+                toast('All password fields are required', true);
+                return;
+            }
+            if (nw !== cnf) {
+                toast('New passwords do not match', true);
+                return;
+            }
+            if (nw.length < 8) {
+                toast('Password must be at least 8 characters',
+                      true);
+                return;
+            }
+            // In production this would POST to /admin/change-password
+            toast('Password updated successfully');
+            document.getElementById('cur-pwd').value = '';
+            document.getElementById('new-pwd').value = '';
+            document.getElementById('cnf-pwd').value = '';
+        }
+
+        // ── Dark mode ──────────────────────────────────────────────────
+        function toggleDarkMode(on) {
+            document.documentElement.style.setProperty(
+                '--bg',      on ? '#1a1a2e' : '#f0f6fa');
+            document.documentElement.style.setProperty(
+                '--surface', on ? '#16213e' : '#ffffff');
+            document.documentElement.style.setProperty(
+                '--text',    on ? '#e0e0e0' : '#0d1b2a');
+            document.documentElement.style.setProperty(
+                '--border',  on ? '#2a3a5e' : '#daeaf3');
+            document.documentElement.style.setProperty(
+                '--muted',   on ? '#8896a5' : '#5a7a8a');
+            localStorage.setItem('mlms_darkMode', on);
+            toast('Dark mode ' + (on ? 'enabled' : 'disabled'));
+        }
+
+        // ── Accent colour ──────────────────────────────────────────────
+        function setAccent(color, el) {
+            document.querySelectorAll('.swatch')
+                .forEach(s => s.classList.remove('sel'));
+            el.classList.add('sel');
+            document.documentElement.style.setProperty(
+                '--primary', color);
+            localStorage.setItem('mlms_accent', color);
+            toast('Accent colour updated');
+        }
+
+        // ── Font size ──────────────────────────────────────────────────
+        function setFontSize(size) {
+            document.body.style.fontSize = size + 'px';
+            localStorage.setItem('mlms_fontSize', size);
+            toast('Font size updated');
+        }
+
+        // ── Sidebar pref ───────────────────────────────────────────────
+        function setSidebarPref(collapsed) {
+            if (collapsed) {
+                document.body.classList.add('collapsed');
+            } else {
+                document.body.classList.remove('collapsed');
+            }
+            localStorage.setItem('mlms_sidebarCollapsed',
+                collapsed);
+            toast('Sidebar preference saved');
+        }
+
+        // ── System config save ─────────────────────────────────────────
+        function saveSystemConfig() {
+            const name     = document.getElementById(
+                'hospital-name').value;
+            const lang     = document.getElementById(
+                'sys-lang').value;
+            const currency = document.getElementById(
+                'currency').value;
+            const maint    = document.getElementById(
+                'maintenance').checked;
+            localStorage.setItem('mlms_systemConfig',
+                JSON.stringify({ name, lang, currency, maint }));
+            toast('System configuration saved');
+        }
+
+        // ── Danger action ──────────────────────────────────────────────
+        function dangerAction(msg, action) {
+            if (confirm(msg + '\n\nThis cannot be undone.')) {
+                localStorage.removeItem('mlms_' + action);
+                toast('Action completed: ' + msg);
+            }
+        }
+
+        // ── Restore saved preferences on load ─────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            // Dark mode
+            const dark = localStorage.getItem('mlms_darkMode');
+            if (dark === 'true') {
+                document.getElementById('dark-mode').checked = true;
+                toggleDarkMode(true);
+            }
+            // Accent
+            const accent = localStorage.getItem('mlms_accent');
+            if (accent) {
+                document.documentElement.style.setProperty(
+                    '--primary', accent);
+                document.querySelectorAll('.swatch').forEach(s => {
+                    s.classList.toggle('sel',
+                        s.style.background === accent);
+                });
+            }
+            // Font size
+            const fs = localStorage.getItem('mlms_fontSize');
+            if (fs) {
+                document.body.style.fontSize = fs + 'px';
+                const sel = document.getElementById('font-size');
+                if (sel) sel.value = fs;
+            }
+            // Sidebar
+            const sc = localStorage.getItem(
+                'mlms_sidebarCollapsed');
+            if (sc === 'true') {
+                document.body.classList.add('collapsed');
+                const cb = document.getElementById(
+                    'sidebar-collapsed');
+                if (cb) cb.checked = true;
+            }
+            // Profile
+            const prof = localStorage.getItem('mlms_profile');
+            if (prof) {
+                const p = JSON.parse(prof);
+                if (document.getElementById('prf-name'))
+                    document.getElementById('prf-name').value =
+                        p.name || '';
+                if (document.getElementById('prf-email'))
+                    document.getElementById('prf-email').value =
+                        p.email || '';
+                if (document.getElementById('prf-phone'))
+                    document.getElementById('prf-phone').value =
+                        p.phone || '';
+            }
+        });
+    </script>
+</th:block>
+</body>
+</html>

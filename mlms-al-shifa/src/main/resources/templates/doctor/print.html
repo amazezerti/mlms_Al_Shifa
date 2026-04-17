@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Print Results</title>
+    <style>
+        .page-header{margin-bottom:24px;}
+        .page-header h4{margin:0;font-size:20px;font-weight:600;}
+        .page-header p{margin:4px 0 0;font-size:13px;color:var(--muted);}
+        .result-ready-card{background:white;border-radius:14px;
+          border:1px solid var(--border);padding:18px 22px;
+          margin-bottom:12px;display:flex;align-items:center;
+          gap:16px;transition:box-shadow 0.2s;}
+        .result-ready-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.07);}
+        .patient-av{width:44px;height:44px;border-radius:50%;
+          background:linear-gradient(135deg,#1a3a6b,#1d4ed8);
+          display:flex;align-items:center;justify-content:center;
+          font-size:16px;font-weight:600;color:white;
+          flex-shrink:0;text-transform:uppercase;}
+        .result-info{flex:1;}
+        .result-patient-name{font-size:14px;font-weight:600;color:var(--text);}
+        .result-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+        .result-tests{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+        .test-chip{padding:3px 10px;background:#eff6ff;border-radius:20px;
+          font-size:11px;color:#1d4ed8;font-weight:500;}
+        .btn-print{background:#1d4ed8;color:white;border:none;
+          border-radius:9px;padding:8px 18px;font-size:13px;
+          font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;
+          display:flex;align-items:center;gap:6px;}
+        .btn-print:hover{opacity:.85;}
+        .search-input{flex:1;border:1.5px solid var(--border);
+          border-radius:10px;padding:9px 16px;font-size:13px;
+          font-family:'DM Sans',sans-serif;outline:none;width:100%;
+          margin-bottom:20px;}
+        .search-input:focus{border-color:#1d4ed8;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="page-header">
+        <h4>Print Lab Results</h4>
+        <p>Print verified results for your patients</p>
+    </div>
+
+    <input class="search-input" type="text"
+           placeholder="Search patient results..."
+           oninput="filterResults(this.value)"/>
+
+    <div id="resultsList">
+
+        <div class="result-ready-card"
+             th:each="r : ${results}">
+            <div class="patient-av"
+                 th:text="${#strings.substring(
+                             r.orderItem.order.patient.fullName,0,1)
+                           + (r.orderItem.order.patient.fullName.contains(' ')
+                              ? #strings.substring(
+                                  r.orderItem.order.patient.fullName,
+                                  r.orderItem.order.patient.fullName.indexOf(' ')+1,
+                                  r.orderItem.order.patient.fullName.indexOf(' ')+2)
+                              : '')}">?</div>
+            <div class="result-info">
+                <div class="result-patient-name"
+                     th:text="${r.orderItem.order.patient.fullName}">Patient</div>
+                <div class="result-meta">
+                    <span th:text="${r.orderItem.order.patient.patientCode}">CODE</span>
+                    ·
+                    <span th:text="${r.orderItem.order.orderCode}">ORD</span>
+                    ·
+                    Verified
+                    <span th:text="${r.verifiedAt != null ?
+                        #temporals.format(r.verifiedAt,'dd MMM yyyy HH:mm') : '—'}">Date</span>
+                </div>
+                <div class="result-tests">
+                    <span class="test-chip"
+                          th:text="${r.orderItem.test.testName + ' ✓'}">Test</span>
+                </div>
+            </div>
+            <span th:switch="${r.flag}" style="flex-shrink:0;">
+                <span th:case="'CRITICAL'" class="pill pill-red">⚠️ Critical Flag</span>
+                <span th:case="'HIGH'"     class="pill pill-amber">⬆️ High</span>
+                <span th:case="'LOW'"      class="pill pill-blue">⬇️ Low</span>
+                <span th:case="*"          class="pill pill-green">✅ Normal</span>
+            </span>
+            <button class="btn-print" onclick="window.print()">
+                <i class="bi bi-printer-fill"></i> Print
+            </button>
+        </div>
+
+    </div>
+
+    <div class="empty-state" th:if="${#lists.isEmpty(results)}"
+         style="text-align:center;padding:60px;color:var(--muted);">
+        <span style="font-size:52px;display:block;margin-bottom:12px;">🖨️</span>
+        <p style="font-size:15px;font-weight:500;margin-bottom:6px;">
+            No verified results to print
+        </p>
+        <p style="font-size:13px;">
+            Results appear here once you have verified them.
+        </p>
+    </div>
+
+</div>
+<th:block layout:fragment="scripts">
+    <script>
+        function filterResults(q) {
+            document.querySelectorAll('.result-ready-card').forEach(c => {
+                c.style.display =
+                    c.textContent.toLowerCase().includes(q.toLowerCase())
+                        ? '' : 'none';
+            });
+        }
+    </script>
+</th:block>
+</body>
+</html>

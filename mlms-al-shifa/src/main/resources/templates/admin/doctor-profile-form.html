@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Doctor Profile</title>
+  <style>
+    .form-card{background:white;border-radius:16px;
+      border:1px solid var(--border);padding:32px;max-width:640px;}
+    .form-header{margin-bottom:28px;}
+    .form-header h4{font-size:18px;font-weight:600;margin:0 0 4px;}
+    .form-header p{font-size:13px;color:var(--muted);margin:0;}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .fg{margin-bottom:4px;}
+    .fg.full{grid-column:1/-1;}
+    .fg label{display:block;font-size:12px;font-weight:500;
+      margin-bottom:6px;}
+    .fg input,.fg select,.fg textarea{width:100%;
+      border:1.5px solid var(--border);border-radius:9px;
+      padding:9px 13px;font-size:13px;
+      font-family:'DM Sans',sans-serif;color:var(--text);
+      outline:none;transition:border-color 0.2s;}
+    .fg input:focus,.fg select:focus,.fg textarea:focus{
+      border-color:#0a5c7f;}
+    .form-actions{display:flex;gap:10px;margin-top:24px;
+      padding-top:20px;border-top:1px solid var(--border);}
+    .btn-primary{background:#0a5c7f;color:white;border:none;
+      border-radius:10px;padding:10px 24px;font-size:14px;
+      font-weight:500;cursor:pointer;}
+    .btn-secondary{background:#f1f5f9;color:var(--text);border:none;
+      border-radius:10px;padding:10px 20px;font-size:14px;
+      cursor:pointer;text-decoration:none;display:inline-flex;
+      align-items:center;}
+    .user-badge{display:flex;align-items:center;gap:12px;
+      background:#f0f6fa;border-radius:12px;padding:14px 18px;
+      margin-bottom:24px;}
+    .user-av{width:44px;height:44px;border-radius:50%;
+      background:#0a5c7f;display:flex;align-items:center;
+      justify-content:center;font-size:16px;font-weight:600;
+      color:white;text-transform:uppercase;flex-shrink:0;}
+    .user-badge-info .name{font-size:14px;font-weight:600;}
+    .user-badge-info .sub{font-size:12px;color:var(--muted);
+      margin-top:2px;}
+  </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+  <div style="margin-bottom:20px;">
+    <a th:href="@{/admin/users}"
+       style="font-size:13px;color:#0a5c7f;text-decoration:none;
+              display:inline-flex;align-items:center;gap:4px;">
+      <i class="bi bi-arrow-left"></i> Back to Users
+    </a>
+  </div>
+
+  <div class="alert-flash alert-success"
+       th:if="${success}" th:text="${success}"></div>
+  <div class="alert-flash alert-error"
+       th:if="${error}" th:text="${error}"></div>
+
+  <div class="form-card">
+    <div class="user-badge">
+      <div class="user-av"
+           th:text="${#strings.substring(user.fullName,0,2)}">
+        DR
+      </div>
+      <div class="user-badge-info">
+        <div class="name"
+             th:text="'Dr. '+user.fullName">Doctor Name</div>
+        <div class="sub"
+             th:text="'@'+user.username+' — Doctor Account'">
+          username
+        </div>
+      </div>
+    </div>
+
+    <div class="form-header">
+      <h4>🩺 Doctor Clinical Profile</h4>
+      <p>This information is displayed to receptionists and on reports</p>
+    </div>
+
+    <form th:action="@{/admin/users/{id}/doctor-profile(id=${user.id})}"
+          method="post">
+      <input type="hidden"
+             th:name="${_csrf.parameterName}"
+             th:value="${_csrf.token}"/>
+
+      <div class="form-grid">
+
+        <div class="fg">
+          <label>Department *</label>
+          <select name="departmentId" required>
+            <option value="">— Select department —</option>
+            <option th:each="d : ${departments}"
+                    th:value="${d.id}"
+                    th:text="${d.name}"
+                    th:selected="${profile != null
+                      and profile.department.id == d.id}">
+              Dept
+            </option>
+          </select>
+        </div>
+
+        <div class="fg">
+          <label>Years of Experience</label>
+          <input type="number" name="yearsExperience"
+                 min="0" max="60" placeholder="e.g. 10"
+                 th:value="${profile?.yearsExperience ?: 0}"/>
+        </div>
+
+        <div class="fg">
+          <label>Specialization</label>
+          <input type="text" name="specialization"
+                 placeholder="e.g. Internal Medicine"
+                 th:value="${profile?.specialization}"/>
+        </div>
+
+        <div class="fg">
+          <label>Qualification</label>
+          <input type="text" name="qualification"
+                 placeholder="e.g. MD, PhD"
+                 th:value="${profile?.qualification}"/>
+        </div>
+
+        <div class="fg full">
+          <label>Medical License Number</label>
+          <input type="text" name="licenseNumber"
+                 placeholder="e.g. TCD-MED-2018-4521"
+                 th:value="${profile?.licenseNumber}"/>
+        </div>
+
+        <div class="fg full">
+          <label>Professional Bio</label>
+          <textarea name="bio" rows="4"
+                    placeholder="Brief professional biography displayed to patients and staff..."
+                    th:text="${profile?.bio}"></textarea>
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+        <a th:href="@{/admin/users}" class="btn-secondary">
+          Cancel
+        </a>
+        <button type="submit" class="btn-primary">
+          Save Doctor Profile
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+</body>
+</html>

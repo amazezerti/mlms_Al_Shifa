@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Print Results</title>
+    <style>
+        .page-header{margin-bottom:24px;}
+        .page-header h4{margin:0;font-size:20px;font-weight:600;}
+        .page-header p{margin:4px 0 0;font-size:13px;color:var(--muted);}
+        .search-row{display:flex;gap:10px;margin-bottom:20px;}
+        .search-input{flex:1;border:1.5px solid var(--border);
+          border-radius:10px;padding:9px 16px;font-size:13px;
+          font-family:'DM Sans',sans-serif;outline:none;}
+        .search-input:focus{border-color:#0f7a58;}
+        .btn-green{background:#0f7a58;color:white;border:none;
+          border-radius:10px;padding:9px 18px;font-size:13px;
+          font-weight:500;cursor:pointer;display:inline-flex;
+          align-items:center;gap:6px;}
+        .result-ready-card{background:white;border-radius:14px;
+          border:1px solid var(--border);padding:18px 22px;
+          margin-bottom:12px;display:flex;align-items:center;
+          gap:16px;transition:box-shadow 0.2s;}
+        .result-ready-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.07);}
+        .patient-av{width:44px;height:44px;border-radius:50%;
+          background:linear-gradient(135deg,#0f7a58,#34d399);
+          display:flex;align-items:center;justify-content:center;
+          font-size:16px;font-weight:600;color:white;
+          flex-shrink:0;text-transform:uppercase;}
+        .result-info{flex:1;}
+        .result-patient-name{font-size:14px;font-weight:600;color:var(--text);}
+        .result-meta{font-size:12px;color:var(--muted);margin-top:3px;
+          display:flex;gap:12px;flex-wrap:wrap;}
+        .result-tests{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+        .test-chip{padding:3px 10px;background:#f0fdf4;
+          border-radius:20px;font-size:11px;color:#0f7a58;font-weight:500;}
+        .btn-print{background:#0f7a58;color:white;border:none;
+          border-radius:9px;padding:8px 18px;font-size:13px;
+          font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;
+          display:flex;align-items:center;gap:6px;white-space:nowrap;}
+        .btn-print:hover{opacity:.85;}
+        .btn-preview{background:#f0fdf4;color:#0f7a58;
+          border:1px solid #86efac;border-radius:9px;
+          padding:8px 14px;font-size:13px;cursor:pointer;white-space:nowrap;}
+        .print-preview-modal{display:none;position:fixed;inset:0;
+          background:rgba(0,0,0,0.5);z-index:2000;
+          align-items:center;justify-content:center;}
+        .print-preview-modal.open{display:flex;}
+        .preview-box{background:white;border-radius:16px;
+          width:680px;max-height:90vh;overflow-y:auto;}
+        .preview-header{background:#0f7a58;color:white;
+          padding:24px 32px;border-radius:16px 16px 0 0;}
+        .preview-header h2{margin:0;font-size:18px;}
+        .preview-header p{margin:4px 0 0;opacity:.8;font-size:13px;}
+        .preview-body{padding:28px 32px;}
+        .preview-section{margin-bottom:20px;}
+        .preview-section h4{font-size:13px;font-weight:600;
+          color:var(--muted);text-transform:uppercase;
+          letter-spacing:0.06em;margin:0 0 10px;}
+        .preview-info-grid{display:grid;grid-template-columns:1fr 1fr;
+          gap:10px 20px;margin-bottom:16px;}
+        .preview-info-item label{font-size:11px;color:var(--muted);
+          display:block;margin-bottom:2px;}
+        .preview-info-item span{font-size:13px;font-weight:500;
+          color:var(--text);}
+        .preview-result-table{width:100%;border-collapse:collapse;
+          font-size:12px;}
+        .preview-result-table th{background:#f0fdf4;padding:8px 12px;
+          text-align:left;font-size:11px;font-weight:600;color:#0f7a58;}
+        .preview-result-table td{padding:9px 12px;
+          border-bottom:1px solid #f0f6fa;}
+        .preview-footer{padding:20px 32px;border-top:1px solid #f0f6fa;
+          display:flex;justify-content:flex-end;gap:10px;}
+        .no-results{text-align:center;padding:60px;color:var(--muted);}
+        .no-results span{font-size:52px;display:block;margin-bottom:12px;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="page-header">
+        <h4>Print Lab Results</h4>
+        <p>Print verified and approved patient lab reports</p>
+    </div>
+
+    <div class="search-row">
+        <input class="search-input" type="text"
+               placeholder="Search by patient name or code..."
+               oninput="filterResults(this.value)"/>
+    </div>
+
+    <div id="resultsList">
+
+        <div id="noMatchMsg"
+             style="display:none;text-align:center;
+                    padding:40px;color:var(--muted);">
+            No results match your search.
+        </div>
+
+        <div class="result-ready-card"
+             th:each="r : ${results}">
+            <div class="patient-av"
+                 th:text="${r.orderItem.order.patient.fullName.length() > 1
+                     ? r.orderItem.order.patient.fullName.substring(0,2)
+                     : r.orderItem.order.patient.fullName}">??</div>
+            <div class="result-info">
+                <div class="result-patient-name"
+                     th:text="${r.orderItem.order.patient.fullName}">Patient</div>
+                <div class="result-meta">
+                    <span th:text="${r.orderItem.order.patient.patientCode}">CODE</span>
+                    <span>·</span>
+                    <span th:text="${r.orderItem.order.orderCode}">ORD</span>
+                    <span>·</span>
+                    <span>Verified by
+                        <span th:text="${r.verifiedBy?.fullName ?: '—'}">Doctor</span>
+                        ·
+                        <span th:text="${r.verifiedAt != null ?
+                            #temporals.format(r.verifiedAt,'dd MMM yyyy HH:mm') : '—'}">Date</span>
+                    </span>
+                </div>
+                <div class="result-tests">
+                    <span class="test-chip"
+                          th:text="${r.orderItem.test.testName + ' ✓'}">Test</span>
+                </div>
+            </div>
+            <span class="pill pill-green" style="flex-shrink:0;">
+                ✅ Verified
+            </span>
+            <div style="display:flex;gap:8px;flex-shrink:0;">
+                <a class="btn-print"
+                   th:href="@{/receptionist/print/order/{id}(
+                               id=${r.orderItem.order.id})}"
+                   target="_blank">
+                    <i class="bi bi-printer-fill"></i> Print
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="no-results" th:if="${#lists.isEmpty(results)}"
+         style="text-align:center;padding:60px;color:var(--muted);">
+        <span style="font-size:52px;display:block;margin-bottom:12px;">🖨️</span>
+        <p style="font-size:15px;font-weight:500;margin-bottom:6px;">
+            No verified results found
+        </p>
+        <p style="font-size:13px;">
+            Results appear here once verified and approved by the doctor.
+        </p>
+    </div>
+
+    <!-- Print Preview Modal -->
+    <div class="print-preview-modal" id="previewModal"
+         onclick="if(event.target.id==='previewModal')
+                closePreview()">
+        <div class="preview-box">
+            <div class="preview-header">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:32px;">🏥</span>
+                    <div>
+                        <h2>Al-Shifa Hospital</h2>
+                        <p>Laboratory Result Report — N'Djamena, Chad</p>
+                    </div>
+                </div>
+            </div>
+            <div class="preview-body">
+
+                <div class="preview-section">
+                    <h4>Patient Information</h4>
+                    <div class="preview-info-grid">
+                        <div class="preview-info-item">
+                            <label>Patient Name</label>
+                            <span id="prev-name">Ibrahim Hassan</span>
+                        </div>
+                        <div class="preview-info-item">
+                            <label>Patient Code</label>
+                            <span id="prev-code">PAT-00001</span>
+                        </div>
+                        <div class="preview-info-item">
+                            <label>Date of Birth</label>
+                            <span>15 March 1985</span>
+                        </div>
+                        <div class="preview-info-item">
+                            <label>Gender</label>
+                            <span>Male</span>
+                        </div>
+                        <div class="preview-info-item">
+                            <label>Blood Group</label>
+                            <span>O+</span>
+                        </div>
+                        <div class="preview-info-item">
+                            <label>Phone</label>
+                            <span>+235 66 00 00 01</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-section">
+                    <h4>Test Information</h4>
+                    <div class="preview-info-grid">
+                        <div class="preview-info-item">
+                            <label>Order Number</label>
+                            <span>ORD-2024-001</span>
+                        </div>
+                        <div class="preview-info-item">
+                            <label>Department</label>
+                            <span>Hematology</span>
+                        </div>
+                        <div class="preview-info-item">
+                            <label>Requesting Doctor</label>
+                            <span>Dr. Ahmad</span>
+                        </div>
+                        <div class="preview-info-item">
+                            <label>Sample Collected</label>
+                            <span>01 Apr 2024, 09:00</span>
+                        </div>
+                        <div class="preview-info-item">
+                            <label>Results Entered</label>
+                            <span>01 Apr 2024, 11:30</span>
+                        </div>
+                        <div class="preview-info-item">
+                            <label>Verified By</label>
+                            <span>Dr. Ahmad — 01 Apr 2024, 14:30</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-section">
+                    <h4>Laboratory Results</h4>
+                    <table class="preview-result-table">
+                        <thead>
+                        <tr>
+                            <th>Test</th>
+                            <th>Result</th>
+                            <th>Unit</th>
+                            <th>Normal Range</th>
+                            <th>Flag</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>Hemoglobin</td>
+                            <td><strong>5.2</strong></td>
+                            <td>g/dL</td>
+                            <td>12.0 – 17.0</td>
+                            <td style="color:#dc2626;font-weight:600;">
+                                CRITICAL LOW
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>WBC Count</td>
+                            <td>14,500</td>
+                            <td>/μL</td>
+                            <td>4,500 – 11,000</td>
+                            <td style="color:#d97706;font-weight:500;">HIGH</td>
+                        </tr>
+                        <tr>
+                            <td>Platelet Count</td>
+                            <td>380,000</td>
+                            <td>/μL</td>
+                            <td>150,000 – 450,000</td>
+                            <td style="color:#15803d;">NORMAL</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="preview-section">
+                    <h4>Doctor's Remarks</h4>
+                    <div style="background:#f0fdf4;border-radius:8px;
+                      padding:12px 16px;font-size:13px;color:var(--text);
+                      border-left:3px solid #0f7a58;">
+                        Critical anemia noted. Immediate iron supplementation recommended.
+                        Follow-up CBC in 2 weeks.
+                    </div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;
+                    align-items:center;margin-top:20px;
+                    padding-top:16px;border-top:1px solid #f0f6fa;">
+                    <div style="font-size:12px;color:var(--muted);">
+                        Report generated: 01 Apr 2024 · Al-Shifa Hospital MLMS v1.0
+                    </div>
+                    <div style="font-size:12px;font-weight:500;">
+                        Authorized Signature: _______________
+                    </div>
+                </div>
+
+            </div>
+            <div class="preview-footer">
+                <button class="btn-preview" onclick="closePreview()">
+                    Close
+                </button>
+                <button class="btn-print" onclick="window.print()">
+                    <i class="bi bi-printer-fill"></i> Print Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+<th:block layout:fragment="scripts">
+    <script>
+        function openPreview(name, code) {
+            document.getElementById('prev-name').textContent = name;
+            document.getElementById('prev-code').textContent = code;
+            document.getElementById('previewModal').classList.add('open');
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').classList.remove('open');
+        }
+
+        function printResult(name) {
+            alert('Sending report for ' + name + ' to printer...');
+        }
+
+        function filterResults(q) {
+            const cards = document.querySelectorAll('.result-ready-card');
+            let visible = 0;
+            cards.forEach(c => {
+                const match = c.textContent.toLowerCase()
+                    .includes(q.toLowerCase());
+                c.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            // Show inline "no match" message when all cards are hidden
+            var noMatch = document.getElementById('noMatchMsg');
+            if (noMatch) noMatch.style.display =
+                (visible === 0 && q.length > 0) ? '' : 'none';
+        }
+    </script>
+</th:block>
+</body>
+</html>

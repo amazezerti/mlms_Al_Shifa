@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Sample Collection</title>
+    <style>
+        .page-header{margin-bottom:24px;}
+        .page-header h4{margin:0;font-size:20px;font-weight:600;}
+        .page-header p{margin:4px 0 0;font-size:13px;
+          color:var(--muted);}
+        .modal-overlay{display:none;position:fixed;inset:0;
+          background:rgba(0,0,0,0.45);z-index:2000;
+          align-items:center;justify-content:center;}
+        .modal-overlay.open{display:flex;}
+        .modal-box{background:white;border-radius:18px;
+          padding:28px;width:100%;max-width:480px;}
+        .modal-box h4{font-size:16px;font-weight:600;
+          margin:0 0 18px;}
+        .fg{margin-bottom:14px;}
+        .fg label{display:block;font-size:12px;font-weight:500;
+          margin-bottom:6px;}
+        .fg input,.fg select,.fg textarea{width:100%;
+          border:1.5px solid var(--border);border-radius:9px;
+          padding:9px 12px;font-size:13px;
+          font-family:'DM Sans',sans-serif;outline:none;
+          transition:border-color .2s;}
+        .fg input:focus,.fg select:focus{border-color:#6d28d9;}
+        .mf{display:flex;gap:10px;justify-content:flex-end;
+          margin-top:18px;}
+        .btn-cancel{background:#f1f5f9;color:var(--text);
+          border:none;border-radius:9px;padding:9px 18px;
+          font-size:13px;cursor:pointer;}
+        .btn-collect{background:#6d28d9;color:white;border:none;
+          border-radius:9px;padding:9px 20px;font-size:13px;
+          font-weight:500;cursor:pointer;}
+        .sample-card{background:white;border-radius:14px;
+          border:1px solid var(--border);margin-bottom:14px;
+          overflow:hidden;}
+        .sample-header{padding:14px 20px;background:#fafcfd;
+          border-bottom:1px solid #f0f6fa;
+          display:flex;justify-content:space-between;
+          align-items:center;}
+        .sample-actions{padding:14px 20px;border-top:1px solid #f0f6fa;
+          background:#f5f3ff;display:flex;
+          justify-content:space-between;align-items:center;}
+        .barcode-input{border:1.5px solid var(--border);
+          border-radius:9px;padding:8px 14px;font-size:13px;
+          font-family:'DM Sans',sans-serif;outline:none;
+          width:220px;transition:border-color .2s;}
+        .barcode-input:focus{border-color:#6d28d9;}
+        .sample-info{padding:16px 20px;}
+        .info-grid{display:grid;grid-template-columns:repeat(3,1fr);
+          gap:12px;}
+        .info-item label{display:block;font-size:11px;
+          font-weight:600;letter-spacing:.06em;
+          text-transform:uppercase;color:var(--muted);
+          margin-bottom:3px;}
+        .info-item span{font-size:13px;font-weight:500;
+          color:var(--text);}
+        .empty-state{text-align:center;padding:48px;
+          color:var(--muted);}
+        .empty-state span{font-size:48px;display:block;
+          margin-bottom:12px;}
+        .btn-new-collect{background:#6d28d9;color:white;
+          border:none;border-radius:10px;padding:9px 20px;
+          font-size:13px;font-weight:500;cursor:pointer;
+          display:inline-flex;align-items:center;gap:6px;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="page-header"
+         style="display:flex;justify-content:space-between;
+              align-items:center;">
+        <div>
+            <h4>Sample Collection</h4>
+            <p>Collect and label samples for confirmed orders</p>
+        </div>
+        <button class="btn-new-collect"
+                onclick="openModal('newSampleModal')">
+            <i class="bi bi-plus-lg"></i> New Collection
+        </button>
+    </div>
+
+    <!-- Pending samples list -->
+    <div th:if="${not #lists.isEmpty(samples)}">
+        <div class="sample-card"
+             th:each="s : ${samples}">
+            <div class="sample-header">
+                <div>
+                    <div style="font-size:14px;font-weight:600;">
+            <span th:text="${s.order.patient.fullName}">
+              Patient
+            </span>
+                    </div>
+                    <div style="font-size:12px;color:var(--muted);
+                      margin-top:2px;">
+            <span th:text="${s.order.patient.patientCode}">
+              PAT
+            </span>
+                        · Order:
+                        <span th:text="${s.order.orderCode}">ORD</span>
+                    </div>
+                </div>
+                <span class="pill"
+                      th:classappend="${s.status=='COLLECTED'}
+                ?'pill-blue'
+                :(${s.status=='RECEIVED'}
+                  ?'pill-green':'pill-amber')"
+                      th:text="${s.status}">
+          COLLECTED
+        </span>
+            </div>
+            <div class="sample-info">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Barcode</label>
+                        <span style="font-family:monospace;
+                         color:#6d28d9;"
+                              th:text="${s.barcode}">BC-001</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Sample Type</label>
+                        <span th:text="${s.sampleType ?: '—'}">—</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Department</label>
+                        <span th:text="${s.department.name}">Dept</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Collected</label>
+                        <span th:text="${#temporals.format(
+              s.collectedAt,'dd MMM HH:mm')}">
+              Date
+            </span>
+                    </div>
+                    <div class="info-item">
+                        <label>Collected By</label>
+                        <span th:text="${s.collectedBy?.fullName
+              ?: '—'}">Tech</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Notes</label>
+                        <span th:text="${s.notes ?: '—'}">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="empty-state"
+         th:if="${#lists.isEmpty(samples)}">
+        <span>🧪</span>
+        <p style="font-size:15px;font-weight:500;
+              margin-bottom:6px;">
+            No samples collected yet
+        </p>
+        <p style="font-size:13px;">
+            Click "New Collection" to record a sample
+        </p>
+    </div>
+
+    <!-- ── New Sample Collection Modal ── -->
+    <div class="modal-overlay" id="newSampleModal">
+        <div class="modal-box">
+            <h4>🧪 Collect New Sample</h4>
+            <form th:action="@{/technician/samples/collect}"
+                  method="post">
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}"/>
+
+                <div class="fg">
+                    <label>Test Order *</label>
+                    <select name="orderId" required>
+                        <option value="">— Select order —</option>
+                        <option th:each="o : ${orders}"
+                                th:value="${o.id}"
+                                th:text="${o.orderCode}
+                              + ' — '
+                              + ${o.patient.fullName}">
+                            Order
+                        </option>
+                    </select>
+                </div>
+
+                <div class="fg">
+                    <label>Barcode / Label *</label>
+                    <input type="text" name="barcode" required
+                           placeholder="Scan or type barcode"/>
+                </div>
+
+                <div class="fg">
+                    <label>Department *</label>
+                    <select name="departmentId" required>
+                        <option value="">— Select department —</option>
+                        <option th:each="d : ${departments}"
+                                th:value="${d.id}"
+                                th:text="${d.name}">Dept</option>
+                    </select>
+                </div>
+
+                <div class="fg">
+                    <label>Sample Type</label>
+                    <select name="sampleType">
+                        <option value="">— Select type —</option>
+                        <option value="Blood (EDTA)">
+                            Blood (EDTA — purple cap)
+                        </option>
+                        <option value="Blood (Serum)">
+                            Blood (Serum — yellow cap)
+                        </option>
+                        <option value="Urine">Urine</option>
+                        <option value="Stool">Stool</option>
+                        <option value="Swab">Swab</option>
+                        <option value="CSF">CSF</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="fg">
+                    <label>Notes (optional)</label>
+                    <input type="text" name="notes"
+                           placeholder="Any collection notes..."/>
+                </div>
+
+                <div class="mf">
+                    <button type="button" class="btn-cancel"
+                            onclick="closeModal('newSampleModal')">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-collect">
+                        <i class="bi bi-droplet-half"></i>
+                        Mark Collected
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+<th:block layout:fragment="scripts">
+    <script>
+        function openModal(id) {
+            document.getElementById(id).classList.add('open');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('open');
+        }
+        document.querySelectorAll('.modal-overlay').forEach(o => {
+            o.addEventListener('click', e => {
+                if (e.target === o) o.classList.remove('open');
+            });
+        });
+    </script>
+</th:block>
+</body>
+</html>
