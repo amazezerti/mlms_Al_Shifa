@@ -41,9 +41,12 @@ public class DoctorController {
                         .getAssignmentsForDoctor(doctor);
 
         long pendingOrders =
-                testOrderRepository
-                        .countByStatusAndAssignedDoctor(
-                                "DRAFT", doctor.getId());
+                doctorProfileService.getByUserId(doctor.getId())
+                        .filter(p -> p.getDepartment() != null)
+                        .map(p -> testOrderRepository
+                                .countDraftOrdersByDepartment(
+                                        p.getDepartment().getId()))
+                        .orElse(0L);
 
         List<TestResult> pendingResults =
                 safeResults("ENTERED", doctor);
@@ -76,9 +79,12 @@ public class DoctorController {
         User doctor = userRepository
                 .findByUsername(auth.getName()).orElseThrow();
         long pendingOrders =
-                testOrderRepository
-                        .countByStatusAndAssignedDoctor(
-                                "DRAFT", doctor.getId());
+                doctorProfileService.getByUserId(doctor.getId())
+                        .filter(p -> p.getDepartment() != null)
+                        .map(p -> testOrderRepository
+                                .countDraftOrdersByDepartment(
+                                        p.getDepartment().getId()))
+                        .orElse(0L);
         List<TestResult> pendingResultsList =
                 safeResults("ENTERED", doctor);
         m.addAttribute("pageTitle",    "My Patients");

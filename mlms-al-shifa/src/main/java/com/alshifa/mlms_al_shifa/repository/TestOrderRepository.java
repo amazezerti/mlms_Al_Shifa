@@ -21,27 +21,38 @@ public interface TestOrderRepository
     List<TestOrder> findAllByOrderByOrderedAtDesc();
 
     /*
-     * DRAFT orders for patients assigned to a given
-     * department — only doctors in that department see them.
+     * DRAFT orders whose items contain at least one test
+     * belonging to the given department — only doctors in
+     * that department see them.
      * JOIN FETCH prevents LazyInitializationException when
      * the template iterates o.patient, o.items, i.test.
      */
     @Query("""
         SELECT DISTINCT o FROM TestOrder o
-        JOIN FETCH o.patient p
+        JOIN FETCH o.patient
         LEFT JOIN FETCH o.createdBy
         LEFT JOIN FETCH o.items i
         LEFT JOIN FETCH i.test
         WHERE o.status = 'DRAFT'
-        AND p.id IN (
-            SELECT pa.patient.id
-            FROM PatientAssignment pa
-            WHERE pa.department.id = :deptId
-            AND pa.status = 'ACTIVE'
+        AND EXISTS (
+            SELECT 1 FROM OrderItem oi
+            JOIN oi.test t
+            WHERE oi.order = o
+            AND t.department.id = :deptId
         )
         ORDER BY o.orderedAt DESC
         """)
     List<TestOrder> findDraftOrdersByDepartment(
+            @Param("deptId") Long deptId);
+
+    @Query("""
+        SELECT COUNT(DISTINCT o) FROM TestOrder o
+        JOIN o.items i
+        JOIN i.test t
+        WHERE o.status = 'DRAFT'
+        AND t.department.id = :deptId
+        """)
+    long countDraftOrdersByDepartment(
             @Param("deptId") Long deptId);
 
     /*
